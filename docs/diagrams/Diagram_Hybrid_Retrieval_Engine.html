@@ -8,7 +8,7 @@
 <div id="canvas" style="width:1180px">
   <svg id="wires"><defs></defs></svg>
   <h1 class="title">Hybrid Retrieval Engine</h1>
-  <p class="sub">Dense semantics + exact-term BM25 fused inside Qdrant, then a cross-encoder picks the evidence.<br>Every component chosen by an 80-query labelled benchmark.</p>
+  <p class="sub">Dense semantics + exact-term BM25 fused inside Qdrant, then a cross-encoder picks the evidence.<br>Components chosen on an 80-query labelled set, re-measured on 198 queries.</p>
 
   <div class="col center" style="gap:46px">
     <div class="box big c-blue" id="q" style="width:560px">
@@ -37,14 +37,14 @@
       <div class="ic"><i data-lucide="filter"></i></div>
       <div class="t">Reciprocal Rank Fusion (in Qdrant)</div>
       <div class="d">one <span class="mono">query_points</span> call · prefetch dense + sparse · payload filters (program, source)</div>
-      <div class="pills"><span class="pill p-purple">Hit@5 0.963 before rerank</span></div>
+      <div class="pills"><span class="pill p-purple">Hit@5 0.975 before rerank · 198 q</span></div>
     </div>
 
     <div class="box big c-blue" id="rerank" style="width:520px">
       <div class="ic"><i data-lucide="network"></i></div>
       <div class="t">Cross-encoder rerank → top 6</div>
       <div class="d">BAAI/bge-reranker-base · 12 candidates · 384 tokens<br>beat Vietnamese_Reranker & bge-reranker-v2-m3 on our data</div>
-      <div class="pills"><span class="pill p-blue">Hit@1 0.875 · MRR 0.912 · p50 307 ms</span></div>
+      <div class="pills"><span class="pill p-blue">Hit@1 0.828 · Hit@5 0.955 · MRR 0.883 · p50 276 ms</span></div>
     </div>
 
     <div class="box big c-teal" id="ctx" style="width:520px">
@@ -56,10 +56,10 @@
 
   <div class="row" style="margin-top:34px; gap:14px">
     <div class="box vert c-blue" style="flex:1"><div class="t">1 · Query</div><ul class="bul"><li>Supervisor resolves context</li><li>Abbrev: KHMT, ĐGNL, CLC</li><li>No-diacritic variants</li></ul></div>
-    <div class="box vert c-green" style="flex:1"><div class="t">2a · Dense</div><ul class="bul"><li>Contextual header embedded</li><li>“title › section” + chunk</li><li>Hit@1 0.762 alone</li></ul></div>
-    <div class="box vert c-orange" style="flex:1"><div class="t">2b · BM25</div><ul class="bul"><li>Codes, years, numbers</li><li>Hashed term ids</li><li>Hit@5 0.938 alone</li></ul></div>
+    <div class="box vert c-green" style="flex:1"><div class="t">2a · Dense</div><ul class="bul"><li>Contextual header embedded</li><li>“title › section” + chunk</li><li>Hit@1 0.762 (80 q)</li></ul></div>
+    <div class="box vert c-orange" style="flex:1"><div class="t">2b · BM25</div><ul class="bul"><li>Codes, years, numbers</li><li>Hashed term ids</li><li>Hit@5 0.938 (80 q)</li></ul></div>
     <div class="box vert c-purple" style="flex:1"><div class="t">3 · RRF</div><ul class="bul"><li>Rank-based, scale-free</li><li>No α tuning needed</li><li>40 ms end-to-end</li></ul></div>
-    <div class="box vert c-blue" style="flex:1"><div class="t">4 · Rerank</div><ul class="bul"><li>Query × chunk scoring</li><li>+5 pts Hit@1</li><li>Source priority tie-break</li></ul></div>
+    <div class="box vert c-blue" style="flex:1"><div class="t">4 · Rerank</div><ul class="bul"><li>Query × chunk scoring</li><li>policy Hit@1 +8 pts</li><li>Source priority tie-break</li></ul></div>
   </div>
 
   <div id="leg"></div>

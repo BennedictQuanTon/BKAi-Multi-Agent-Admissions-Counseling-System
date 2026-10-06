@@ -47,40 +47,40 @@ A larger run first found two real bugs (a major-name resolver gap and three miss
     <td align="center"><b>Answer with agent trace & sources</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Home.png" alt="Home" width="500"/></td>
-    <td><img src="docs/image/UI_Answer_Agent_Trace.png" alt="Agent trace" width="500"/></td>
+    <td><img src="docs/image/UI_Home.jpg" alt="Home" width="500"/></td>
+    <td><img src="docs/image/UI_Answer_Agent_Trace.jpg" alt="Agent trace" width="500"/></td>
   </tr>
   <tr>
     <td align="center"><b>Multi-turn follow-up</b></td>
     <td align="center"><b>Score calculator & major recommendations</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Answer_Multiturn.png" alt="Multi-turn" width="500"/></td>
-    <td><img src="docs/image/UI_Counselor.png" alt="Counselor" width="500"/></td>
+    <td><img src="docs/image/UI_Answer_Multiturn.jpg" alt="Multi-turn" width="500"/></td>
+    <td><img src="docs/image/UI_Counselor.jpg" alt="Counselor" width="500"/></td>
   </tr>
   <tr>
     <td align="center"><b>Voice (AssemblyAI + Kokoro, barge-in)</b></td>
     <td align="center"><b>Owner dashboard — benchmarks</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Voice.png" alt="Voice" width="500"/></td>
-    <td><img src="docs/image/UI_Dashboard_Benchmarks.png" alt="Dashboard" width="500"/></td>
+    <td><img src="docs/image/UI_Voice.jpg" alt="Voice" width="500"/></td>
+    <td><img src="docs/image/UI_Dashboard_Benchmarks.jpg" alt="Dashboard" width="500"/></td>
   </tr>
   <tr>
     <td align="center"><b>Observability popup (live)</b></td>
     <td align="center"><b>Per-query trace: waterfall, Gemini calls, chunks</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Observability.png" alt="Observability" width="500"/></td>
-    <td><img src="docs/image/UI_Observability_Query_Trace.png" alt="Query trace" width="500"/></td>
+    <td><img src="docs/image/UI_Observability.jpg" alt="Observability" width="500"/></td>
+    <td><img src="docs/image/UI_Observability_Query_Trace.jpg" alt="Query trace" width="500"/></td>
   </tr>
 </table>
 
-<p align="center"><img src="docs/image/UI_Mobile.png" alt="Mobile" width="230"/><br/><sub>Responsive down to 360 px</sub></p>
+<p align="center"><img src="docs/image/UI_Mobile.jpg" alt="Mobile" width="230"/><br/><sub>Responsive down to 360 px</sub></p>
 
 ### Landing page & 60-second film
 
-<p align="center"><a href="frontend/public/media/trailer/bkai-trailer-web.mp4"><img src="docs/image/UI_Landing.png" alt="BKAi landing page, click to watch the 60-second film" width="760"/></a></p>
+<p align="center"><a href="frontend/public/media/trailer/bkai-trailer-web.mp4"><img src="docs/image/UI_Landing.jpg" alt="BKAi landing page, click to watch the 60-second film" width="760"/></a></p>
 
 The landing page is the app's front door at `/`, and **Try it** opens the counselor at `/chat`. The page has these sections:
 - a hero with a live answer replay;
@@ -104,9 +104,9 @@ The film is rendered from HTML frame by frame, voiced by Kokoro-82M and scored i
 | Layer | Components |
 |---|---|
 | **Client** | React 19 SPA: landing page at `/`, chat at `/chat`, voice (AudioWorklet PCM16), calculator, dashboard, Observability popup. No accounts: memory is per device |
-| **API edge** | FastAPI: REST + `/ws/chat`, `/ws/voice`, `/ws/dashboard`; rate limits, Origin allow-list, PII redaction |
+| **API edge** | FastAPI: REST + `/ws/chat`, `/ws/voice`, `/ws/dashboard`, MCP at `/mcp`; rate limits, Origin allow-list, PII redaction |
 | **Agents** | LangGraph: Supervisor → Data / Policy / Counsel specialists (in parallel) → Synthesizer → Verifier |
-| **Tools** | 11 read-only tools, also published as an **MCP server** (`mcp_server.py`) |
+| **Tools** | 11 read-only tools, also published over **MCP** (in the API at `/mcp`, or `mcp_server.py` over stdio) |
 | **Knowledge** | `facts.sqlite` (11 tables) · Qdrant collection (340 chunks, dense + sparse) · answer cache collection |
 | **State** | Redis: anonymous sessions (7 days), student profile, telemetry, rate-limit counters · browser `localStorage`: device id, recent chats, transcripts |
 | **Models** | Gemini 3.5 Flash-Lite (3.1 Flash-Lite failover) · Vietnamese_Embedding_v2 · bge-reranker-base · AssemblyAI · Kokoro |
@@ -126,7 +126,7 @@ bkai2/
 │   ├── memory/         Redis sessions, student profile, telemetry, answer cache
 │   ├── api/            REST, WebSockets, voice, security middleware
 │   ├── evaluation/     benchmarks + datasets + reports/*.json
-│   ├── tests/          35 unit tests (no network)
+│   ├── tests/          36 unit tests (no network)
 │   ├── ingest.py       chunk → embed → index into Qdrant
 │   └── mcp_server.py   MCP server (stdio; also mounted in the API at /mcp)
 ├── frontend/           React 19 + TypeScript + Vite + Tailwind v4 + framer-motion
@@ -135,7 +135,7 @@ bkai2/
 ├── scripts/            smoke_prod.py (post-deploy checks), start-infra.sh (Redis + Qdrant in Docker)
 ├── brand/              logo files and brand guide (BRAND.md)
 ├── deploy/Caddyfile    TLS reverse proxy for production
-├── docs/               diagrams (HTML sources + render script), DEPLOYMENT.md, MANUAL_TEST.md, PLAN_v5.md
+├── docs/               diagrams/ (HTML sources, render + optimize scripts), image/, DEPLOYMENT.md, MANUAL_TEST.md, PLAN_v5.md
 ├── docker-compose.yml  + docker-compose.prod.yml
 └── VERSION.md          v1 → v5 comparison
 ```
@@ -153,7 +153,7 @@ bkai2/
 | Embedding | **AITeamVN/Vietnamese_Embedding_v2** (1024-d) | best of 4 models on the 80-query selection run; Hit@1 0.475 → 0.813 vs MiniLM on 198 queries |
 | Reranker | **BAAI/bge-reranker-base**, len 384, 12 candidates | lifts policy Hit@1 0.74 → 0.82 (198 q); the Vietnamese reranker scored lower (0.787 vs 0.875 on 80 q) |
 | Cache & memory | **Redis** 8 | anonymous sessions (7 days), profile, telemetry, rate limits |
-| STT | **AssemblyAI Universal-3.6 Pro** streaming · Whisper large-v3-turbo fallback | CER 1.26%, final transcript 579 ms after speech |
+| STT | **AssemblyAI Universal-3.6 Pro** streaming · Whisper large-v3-turbo only without an AssemblyAI key | CER 1.26%, final transcript 579 ms after speech |
 | TTS | **Kokoro-Vietnamese** (local) · edge-tts / Gemini TTS fallbacks | first byte 591 ms vs 1,001 ms (Gemini) and 3,821 ms (edge) |
 | Realtime voice | **LiveKit Agents** 1.8.4 worker (optional) | WebRTC / SIP |
 | Tool protocol | **MCP** Python SDK 2.x | the same 11 tools for Claude Desktop, IDEs and other agents |
@@ -462,7 +462,7 @@ python -m agents.voice_livekit dev                # LiveKit realtime worker
 With an AssemblyAI key, the Whisper fallback is never loaded. MCP clients connect to `http://127.0.0.1:8000/mcp` (streamable HTTP),
 or run `backend/mcp_server.py` over stdio.
 
-With Docker: `docker compose up -d --build` (add `--profile mcp` or `--profile voice` for the extra services).
+With Docker: `docker compose up -d --build`. The API already serves MCP at `/mcp`; add `--profile voice` for the LiveKit worker, or `--profile mcp` for a standalone MCP server on :8765.
 For a 25-minute walkthrough of every feature, see [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md).
 
 ### Main endpoints

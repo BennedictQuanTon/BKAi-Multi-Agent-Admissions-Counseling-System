@@ -16,9 +16,9 @@
     <div class="panel c-blue" id="clients" style="width:300px">
       <div class="ph"><i data-lucide="users"></i>Clients</div>
       <div class="col">
-        <div class="box c-blue" id="spa"><div class="ic"><i data-lucide="monitor-smartphone"></i></div><div><div class="t">React 19 SPA</div><div class="d">Chat · Voice · Counselor · Dashboard<br>Vite · Tailwind v4 · framer-motion</div></div></div>
-        <div class="box c-blue" id="mic"><div class="ic"><i data-lucide="audio-lines"></i></div><div><div class="t">Mic → AudioWorklet</div><div class="d">PCM16 16 kHz frames · Web Audio playback</div></div></div>
-        <div class="box c-blue dashed" id="mcpc"><div class="ic"><i data-lucide="plug"></i></div><div><div class="t">MCP clients</div><div class="d">Claude Desktop · Cursor · Open WebUI (mcpo)</div></div></div>
+        <div class="box c-blue" id="spa"><div class="ic"><i data-lucide="monitor-smartphone"></i></div><div><div class="t">React 19 SPA</div><div class="d">Landing <b>/</b> → App <b>/chat</b> · Voice · Counselor<br>Dashboard · Observability (admin)</div></div></div>
+        <div class="box c-blue" id="mic"><div class="ic"><i data-lucide="hard-drive"></i></div><div><div class="t">Device memory</div><div class="d">anonymous id · recent chats · transcripts<br>localStorage · no accounts</div></div></div>
+        <div class="box c-blue dashed" id="mcpc"><div class="ic"><i data-lucide="plug"></i></div><div><div class="t">MCP clients</div><div class="d">Claude Desktop · Cursor · agents<br>streamable HTTP /mcp · or stdio</div></div></div>
       </div>
     </div>
 
@@ -27,10 +27,10 @@
       <div class="panel c-teal" id="edge">
         <div class="ph"><i data-lucide="shield-check"></i>API Edge — FastAPI :8000</div>
         <div class="row" style="gap:14px">
-          <div class="box c-teal" id="rest" style="flex:1"><div class="ic"><i data-lucide="globe"></i></div><div><div class="t">REST</div><div class="d">/api/chat · /tools/calc<br>/admin/review · /eval</div></div></div>
+          <div class="box c-teal" id="rest" style="flex:1"><div class="ic"><i data-lucide="globe"></i></div><div><div class="t">REST · MCP</div><div class="d">/api/chat · /tools/calc · /admin<br>/mcp: 11 tools, in-process</div></div></div>
           <div class="box c-teal" id="ws" style="flex:1"><div class="ic"><i data-lucide="radio"></i></div><div><div class="t">WebSocket</div><div class="d">/ws/chat · /ws/voice<br>/ws/dashboard (live console)</div></div></div>
-          <div class="box c-teal" id="guard" style="flex:1"><div class="ic"><i data-lucide="shield-alert"></i></div><div><div class="t">Guardrails</div><div class="d">rules · injection · scope<br>Redis rate-limit / IP</div></div></div>
-          <div class="box c-red" id="cache" style="flex:1"><div class="ic"><i data-lucide="zap"></i></div><div><div class="t">Answer cache</div><div class="d">entity-guarded · approved<br>only · ~30 ms hit</div></div></div>
+          <div class="box c-teal" id="guard" style="flex:1"><div class="ic"><i data-lucide="shield-alert"></i></div><div><div class="t">Guardrails</div><div class="d">injection · scope · PII redact<br>session-id check · rate limit</div></div></div>
+          <div class="box c-red" id="cache" style="flex:1"><div class="ic"><i data-lucide="zap"></i></div><div><div class="t">Answer cache</div><div class="d">entity-guarded · approved<br>only · ~60 ms hit</div></div></div>
         </div>
       </div>
 
@@ -53,9 +53,9 @@
     <div class="panel c-purple" id="voice" style="width:300px">
       <div class="ph"><i data-lucide="mic"></i>Voice Path</div>
       <div class="col">
-        <div class="box c-purple" id="aai"><div class="ic"><i data-lucide="audio-waveform"></i></div><div><div class="t">AssemblyAI U-3.6 Pro</div><div class="d">streaming vi · keyterms · turn detection<br>fallback: Whisper large-v3-turbo</div></div></div>
-        <div class="box c-purple" id="kokoro"><div class="ic"><i data-lucide="volume-2"></i></div><div><div class="t">Kokoro-Vietnamese</div><div class="d">local TTS · per-clause streaming<br>~0.6 s / sentence · RTF 0.11</div></div></div>
-        <div class="box c-purple dashed" id="lk"><div class="ic"><i data-lucide="phone-call"></i></div><div><div class="t">LiveKit worker</div><div class="d">optional WebRTC / telephony</div></div></div>
+        <div class="box c-purple" id="aai"><div class="ic"><i data-lucide="audio-waveform"></i></div><div><div class="t">AssemblyAI U-3.6 Pro</div><div class="d">streaming vi · keyterms · turn detection<br>CER 1.26% · final text 579 ms</div></div></div>
+        <div class="box c-purple" id="kokoro"><div class="ic"><i data-lucide="volume-2"></i></div><div><div class="t">Kokoro-Vietnamese</div><div class="d">local TTS · per-clause streaming<br>first audio ~0.6 s · RTF 0.11</div></div></div>
+        <div class="box c-purple dashed" id="lk"><div class="ic"><i data-lucide="phone-call"></i></div><div><div class="t">LiveKit worker</div><div class="d">WebRTC / telephony · on when LIVEKIT_* set</div></div></div>
       </div>
     </div>
   </div>
@@ -66,7 +66,7 @@
       <div class="row" style="gap:12px">
         <div class="box c-green" id="facts" style="flex:1"><div class="ic"><i data-lucide="table-2"></i></div><div><div class="t">facts.sqlite</div><div class="d">11 typed tables · 74 majors<br>302 cut-offs (2023–2026)</div></div></div>
         <div class="box c-green" id="qdrant" style="flex:1"><div class="ic"><i data-lucide="boxes"></i></div><div><div class="t">Qdrant</div><div class="d">340 chunks · dense 1024-d<br>+ BM25 sparse (IDF)</div></div></div>
-        <div class="box c-red" id="redis" style="flex:1"><div class="ic"><i data-lucide="layers"></i></div><div><div class="t">Redis</div><div class="d">sessions + profile · TTL<br>telemetry · rate limit</div></div></div>
+        <div class="box c-red" id="redis" style="flex:1"><div class="ic"><i data-lucide="layers"></i></div><div><div class="t">Redis</div><div class="d">sessions (7 days) + profile<br>telemetry · rate limit</div></div></div>
       </div>
     </div>
     <div class="panel c-slate" id="datahub" style="flex:1">
@@ -89,7 +89,7 @@
 <script>
 ready(() => {
   document.getElementById("leg").outerHTML = legend([["blue","HTTP / WebSocket"],["teal","Request path"],["orange","Agent flow"],["green","Data / tools"],["purple","Voice"],["slate","Offline build",true]]);
-  hwire("clients","edge",0.45,{color:"blue",label:"REST · WS",ly:-14});
+  hwire("clients","edge",0.45,{color:"blue",label:"REST · WS · MCP",ly:-14});
   vwire("edge","graph",0.62,{color:"teal",label:"guard ✓ · cache miss"});
   wire("sup","data",{from:"r",to:"l",color:"orange"});
   wire("sup","policy",{from:"r",to:"l",color:"orange"});
@@ -103,7 +103,6 @@ ready(() => {
   hwire("edge","voice",0.55,{color:"purple",label:"/ws/voice",ly:-14});
   hwire("graph","voice",0.4,{color:"purple",label:"spoken answer",ly:-14});
   hwire("datahub","know",0.5,{color:"slate",dash:true,left:true,label:"build",ly:-14});
-  vwire("clients","know",0.5,{color:"green",dash:true,label:"MCP server"});
 });
 </script>
 </body></html>

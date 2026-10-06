@@ -13,7 +13,7 @@
 
   <div class="row" style="gap:58px; justify-content:center">
     <div class="box vert c-blue step" id="mic"><div class="ic"><i data-lucide="mic"></i></div><div class="t">Browser mic</div><div class="d" style="text-align:center">AudioWorklet → 16 kHz<br>PCM16 · 50 ms frames<br>echo cancel · RMS level</div></div>
-    <div class="box vert c-purple step" id="stt"><div class="ic"><i data-lucide="audio-waveform"></i></div><div class="t">STT</div><div class="d" style="text-align:center"><b>AssemblyAI Universal-3.6 Pro</b><br>streaming · vi + en · keyterms<br>(100 major names, ĐGNL…)<br><b>CER 1.3% · final 579 ms</b><br>fallback: Whisper large-v3-turbo</div></div>
+    <div class="box vert c-purple step" id="stt"><div class="ic"><i data-lucide="audio-waveform"></i></div><div class="t">STT</div><div class="d" style="text-align:center"><b>AssemblyAI Universal-3.6 Pro</b><br>streaming · vi + en · keyterms<br>(100 major names, ĐGNL…)<br><b>CER 1.26% · final 579 ms</b><br>Whisper only if no AssemblyAI key</div></div>
     <div class="box vert c-purple step" id="turn"><div class="ic"><i data-lucide="hourglass"></i></div><div class="t">Turn detection</div><div class="d" style="text-align:center">semantic end-of-turn<br>min 400 ms · max 1.5 s silence<br>SpeechStarted → barge-in</div></div>
     <div class="box vert c-orange step" id="graph"><div class="ic"><i data-lucide="bot"></i></div><div class="t">Agent graph</div><div class="d" style="text-align:center">channel = voice<br>≤3 sentences · no markdown<br>same verifier & citations</div></div>
   </div>
