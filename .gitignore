@@ -101,3 +101,6 @@ Voice_Agent_Images/
 
 # ===== Local run state (scripts/start.sh) =====
 .run/
+
+# ===== Personal notes (not for the repo) =====
+INTERVIEW_QA.md

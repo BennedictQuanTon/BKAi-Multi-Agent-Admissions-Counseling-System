@@ -1,10 +1,10 @@
 <p><img src="brand/bkai-lockup.png" alt="BKAi" height="44"/></p>
 
-# BKAi — Multi-Agent Admissions Counselor for HCMUT
+# BKAi — Multi-Agent RAG Admissions Counselor for HCMUT
 
 > **Vietnamese admissions counseling for Ho Chi Minh City University of Technology (HCMUT · ĐHQG-HCM), by chat and by voice.**<br/>
 > **Developed by:** Long Quan Ton<br/>
-> **Stack:** LangGraph multi-agent · Gemini 3.5 Flash-Lite · Qdrant hybrid search · SQL fact DB · MCP · AssemblyAI + Kokoro voice · React 19<br/>
+> **Stack:** LangGraph multi-agent RAG · Gemini 3.5 Flash-Lite · Qdrant hybrid retrieval (dense + BM25) · SQL fact tools · MCP · AssemblyAI + Kokoro voice · React 19<br/>
 > **Version:** 5.0.0 — [what changed since v1](VERSION.md) · [deployment & security](docs/DEPLOYMENT.md) · [manual test script](docs/MANUAL_TEST.md) · [landing page & 60-s film](frontend/video/README.md) · [brand](brand/BRAND.md)
 
 ---
@@ -14,6 +14,10 @@
 BKAi answers the questions Vietnamese high-school students actually ask HCMUT: cut-off scores by major, program
 and year, quotas, tuition, the 2026 combined-score formula, English certificate conversion, deadlines and campus life.
 It also works as a counselor: it computes a student's admission score and sorts majors into *safe / match / reach*.
+
+BKAi is a **multi-agent RAG** system. A Supervisor routes each question to specialist agents that run in parallel:
+the **Data agent** queries typed SQL tables for numbers, the **Policy agent** uses **hybrid retrieval** (dense + BM25, fused with RRF)
+for regulations, and the **Counsel agent** applies the official score formula. A Synthesizer writes the answer and a verifier checks it.
 
 Every number comes from **official hcmut.edu.vn pages**. They are crawled, validated and loaded into **typed SQL tables**.
 Agents query those tables through tools, write the answer with citations, and a **deterministic verifier** checks every
@@ -105,7 +109,7 @@ The film is rendered from HTML frame by frame, voiced by Kokoro-82M and scored i
 |---|---|
 | **Client** | React 19 SPA: landing page at `/`, chat at `/chat`, voice (AudioWorklet PCM16), calculator, dashboard, Observability popup. No accounts: memory is per device |
 | **API edge** | FastAPI: REST + `/ws/chat`, `/ws/voice`, `/ws/dashboard`, MCP at `/mcp`; rate limits, Origin allow-list, PII redaction |
-| **Agents** | LangGraph: Supervisor → Data / Policy / Counsel specialists (in parallel) → Synthesizer → Verifier |
+| **Agents** | LangGraph multi-agent RAG: Supervisor → Data / Policy / Counsel specialists (in parallel) → Synthesizer → Verifier |
 | **Tools** | 11 read-only tools, also published over **MCP** (in the API at `/mcp`, or `mcp_server.py` over stdio) |
 | **Knowledge** | `facts.sqlite` (11 tables) · Qdrant collection (340 chunks, dense + sparse) · answer cache collection |
 | **State** | Redis: anonymous sessions (7 days), student profile, telemetry, rate-limit counters · browser `localStorage`: device id, recent chats, transcripts |
@@ -221,7 +225,7 @@ python ingest.py           # chunk → embed → index into Qdrant
 
 ---
 
-## 5. Hybrid Retrieval
+## 5. Hybrid Retrieval (Policy agent)
 
 ![Hybrid Retrieval Engine](docs/image/Diagram_Hybrid_Retrieval_Engine.png)
 
@@ -254,9 +258,13 @@ Model selection used 80 labelled queries (50 policy + 30 major), testing 4 embed
 
 ---
 
-## 6. Multi-Agent Orchestration
+## 6. Multi-Agent RAG Orchestration
 
 ![Multi-Agent Orchestration](docs/image/Diagram_Multi_Agent_Orchestration.png)
+
+This is **multi-agent RAG**, with retrieval used selectively: numbers are never retrieved as text, they come from SQL tools.
+The LLM decides the path only where the question is ambiguous (the Supervisor's plan) or the evidence is weak (the corrective hop).
+Everything else is deterministic code, which keeps the average at 1.01 LLM calls per answer.
 
 | Node | LLM | Job |
 |---|---|---|
