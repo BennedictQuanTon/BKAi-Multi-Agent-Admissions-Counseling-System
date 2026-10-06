@@ -1,76 +1,74 @@
-# =============================================
-# BKAi — Docker Compose
-# Hệ thống Tư vấn Tuyển sinh Bách Khoa
-# =============================================
-# Khởi chạy: docker compose up --build -d
-# Tắt:       docker compose down
-# =============================================
+# BKAi v5 — docker compose up --build -d
+#
+# Build the knowledge base first (on the host, needs Chrome for the crawler):
+#   cd backend && python -m datahub all && python ingest.py      (QDRANT_URL=http://localhost:6333)
+# Optional profiles:  --profile mcp (MCP server :8765) · --profile voice (LiveKit worker)
 
 services:
-  # ── Redis Stack: Semantic Cache & Stats ──
   redis:
-    image: redis/redis-stack-server:latest
+    image: redis:8-alpine
     container_name: bkai-redis
-    ports:
-      - "6380:6379"   # Host 6380 to avoid conflict with local Redis on 6379
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, timeout: 3s, retries: 5 }
     restart: unless-stopped
 
-  # ── Backend: FastAPI + Agentic RAG ──
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: bkai-qdrant
+    ports: ["6333:6333"]
+    volumes: [qdrant_data:/qdrant/storage]
+    restart: unless-stopped
+
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: { context: ./backend }
     container_name: bkai-backend
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./backend/.env
+    ports: ["8000:8000"]
+    env_file: [./backend/.env]
     environment:
-      # Override local Redis URL to point to the docker container
-      - REDIS_URL=redis://redis:6379/0
-      # Override CORS to allow frontend and dashboard
-      - API_CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      API_CORS_ORIGINS: http://localhost:5173,http://localhost:4173
+      EMBEDDING_DEVICE: cpu
     volumes:
-      - chroma_data:/app/memory/vector_db
-      - ./backend/data:/app/data
+      - ./backend/data:/app/data      # facts.sqlite + curated docs (built by `python -m datahub all`)
+      - hf_models:/models             # embedding / reranker / Kokoro weights cache
     depends_on:
-      redis:
-        condition: service_healthy
+      redis: { condition: service_healthy }
+      qdrant: { condition: service_started }
     restart: unless-stopped
 
-  # ── Frontend: Chat UI (Nginx) ──
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      args: { VITE_API_URL: "http://localhost:8000" }
     container_name: bkai-frontend
-    ports:
-      - "5173:80"
-    depends_on:
-      - backend
+    ports: ["5173:80"]
+    depends_on: [backend]
     restart: unless-stopped
 
-  # ── Dashboard: Monitoring UI (Nginx) ──
-  dashboard:
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    container_name: bkai-dashboard
-    ports:
-      - "5174:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
+  mcp:
+    profiles: ["mcp"]
+    build: { context: ./backend }
+    container_name: bkai-mcp
+    command: ["python", "mcp_server.py", "--http", "--port", "8765"]
+    ports: ["8765:8765"]
+    env_file: [./backend/.env]
+    environment: { QDRANT_URL: http://qdrant:6333, EMBEDDING_DEVICE: cpu }
+    volumes: [./backend/data:/app/data, hf_models:/models]
+    depends_on: [qdrant]
+
+  voice-worker:
+    profiles: ["voice"]
+    build: { context: ./backend }
+    container_name: bkai-voice-worker
+    command: ["python", "-m", "agents.voice_livekit", "start"]
+    env_file: [./backend/.env]
+    environment: { BKAI_BACKEND_URL: http://backend:8000 }
+    volumes: [./backend/data:/app/data, hf_models:/models]
+    depends_on: [backend]
 
 volumes:
   redis_data:
-    driver: local
-  chroma_data:
-    driver: local
+  qdrant_data:
+  hf_models:

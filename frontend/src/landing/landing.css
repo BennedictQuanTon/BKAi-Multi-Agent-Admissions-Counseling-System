@@ -1,0 +1,99 @@
+/* Landing page ("/") — tokens from "Landing Page_DESIGN.md" plus the Bách Khoa brand (brand/BRAND.md).
+   Everything is prefixed lp- or scoped under .lp so it never touches the app's DESIGN.md tokens. */
+@theme {
+  --color-lp-canvas: #fdfcfb;
+  --color-lp-cloud: #f5f5f7;
+  --color-lp-paper: #f0f0ea;
+  --color-lp-board: #eeeded;
+  --color-lp-linen: #e4ded3;
+  --color-lp-ink: #1d1d1f;
+  --color-lp-copy: #424245;
+  --color-lp-quiet: #6e6e73;
+  --color-lp-ash: #a1a1a6;
+  --color-lp-source: #1f6fe0;
+  --color-lp-navy: #0d2f86;
+  --color-lp-sky: #3aa0f0;
+  --color-lp-hairline: rgba(0, 0, 0, 0.08);
+  --font-lp-display: "Instrument Sans", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.lp {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-float: 0 0 4px rgba(0, 0, 0, 0.03), 0 4px 8px rgba(0, 0, 0, 0.04), 0 16px 26px rgba(0, 0, 0, 0.05);
+  --shadow-overlay: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 14px 32px rgba(0, 0, 0, 0.1), 0 28px 70px rgba(0, 0, 0, 0.14);
+  --shadow-pill: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--color-lp-canvas);
+  color: var(--color-lp-ink);
+  font-family: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+  min-height: 100%;
+
+  & ::selection { background: rgba(31, 111, 224, 0.16); }
+  & :focus-visible { outline: 2px solid var(--color-lp-source); outline-offset: 3px; border-radius: 4px; }
+  & img, & video { display: block; max-width: 100%; }
+
+  & .container-l { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: 16px; }
+  @media (min-width: 768px) { & .container-l { padding-inline: 32px; } }
+  & .section { padding-block: clamp(80px, 11vw, 140px); }
+  & .display { font-family: var(--font-lp-display); font-weight: 500; font-size: clamp(38px, 5vw, 64px); line-height: 1.06; letter-spacing: -0.035em; }
+  & .h2 { font-family: var(--font-lp-display); font-weight: 500; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; letter-spacing: -0.028em; }
+  & .lead { font-size: 19px; line-height: 1.5; color: var(--color-lp-quiet); }
+  & .eyebrow { font-size: 15px; font-weight: 600; color: var(--color-lp-source); letter-spacing: -0.01em; }
+  & .pill-dark {
+    display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: var(--color-lp-ink); color: #fff;
+    font-weight: 600; font-size: 16px; line-height: 20px; padding: 11px 22px;
+    transition: transform 0.4s var(--ease-out-expo), background-color 0.2s;
+  }
+  & .pill-dark:hover { background: #000; transform: translateY(-1px); }
+  & .pill-blue {
+    display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: var(--color-lp-source); color: #fff;
+    font-weight: 600; font-size: 16px; line-height: 20px; padding: 11px 24px;
+    transition: transform 0.4s var(--ease-out-expo), background-color 0.2s, box-shadow 0.3s;
+    box-shadow: 0 8px 24px rgba(31, 111, 224, 0.28);
+  }
+  & .pill-blue:hover { background: #1a5fc4; transform: translateY(-1px); box-shadow: 0 12px 30px rgba(31, 111, 224, 0.34); }
+  & .pill-light {
+    display: inline-flex; align-items: center; gap: 8px; border-radius: 9999px; background: var(--color-lp-canvas); color: var(--color-lp-ink);
+    font-weight: 500; font-size: 16px; line-height: 20px; padding: 10px 20px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.13);
+    transition: transform 0.4s var(--ease-out-expo), box-shadow 0.2s;
+  }
+  & .pill-light:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22); }
+  & .link-blue { color: var(--color-lp-source); font-weight: 500; }
+  & .link-blue:hover { text-decoration: underline; text-underline-offset: 4px; }
+  & .badge {
+    display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--color-lp-linen); border-radius: 6px;
+    background: var(--color-lp-canvas); padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  & .tnum { font-variant-numeric: tabular-nums; }
+  & .ref { font-size: 0.68em; vertical-align: super; line-height: 0; color: var(--color-lp-source); font-weight: 500; margin-left: 1px; }
+  & .ref:hover { text-decoration: underline; }
+  & .scroll-x { overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+  & .grain {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  & .caret::after {
+    content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em;
+    background: var(--color-lp-source); animation: lp-blink 1s steps(2, start) infinite;
+  }
+  & .r-in { animation: lp-in 0.6s var(--ease-out-expo) both; }
+  /* Apple-style surfaces */
+  & .tile { background: #fff; border-radius: 28px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); overflow: hidden; position: relative; }
+  & .tile-soft { background: var(--color-lp-cloud); border-radius: 28px; overflow: hidden; position: relative; }
+  & .marquee { mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  & .marquee-track { display: flex; width: max-content; animation: lp-marquee var(--dur, 60s) linear infinite; }
+  & .marquee:hover .marquee-track { animation-play-state: paused; }
+  & .marquee-rev { animation-direction: reverse; }
+  & video::cue { background: rgba(29, 29, 31, 0.78); color: #fff; font-family: "Inter Variable", Inter, sans-serif; font-size: 0.9em; line-height: 1.4; }
+}
+
+@keyframes lp-blink { to { visibility: hidden; } }
+@keyframes lp-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }
+@keyframes lp-marquee { to { transform: translateX(-50%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp *, .lp *::before, .lp *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

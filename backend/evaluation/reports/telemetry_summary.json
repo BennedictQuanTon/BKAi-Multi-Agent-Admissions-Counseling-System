@@ -1,0 +1,109 @@
+{
+ "generated_at": "2026-10-06T13:34:59.460065+00:00",
+ "prefixes": [
+  "bkai_test",
+  "bkai_bench",
+  "bkai_v5",
+  "bkai",
+  "bkai_scale"
+ ],
+ "requests_total": 792,
+ "routes": {
+  "fast_path": 556,
+  "supervisor": 123,
+  "cache": 61,
+  "guardrail": 52
+ },
+ "llm_requests": 679,
+ "excluded": {
+  "cold_start": 8,
+  "fallback_model_quota": 232,
+  "gemini_stall": 3,
+  "gemini_error_failover": 24
+ },
+ "all_llm": {
+  "n": 679,
+  "latency_ms": {
+   "p50": 2266.9,
+   "p90": 7638.0,
+   "p95": 11128.6,
+   "p99": 22400.5
+  },
+  "ttft_ms": {
+   "p50": 1354.7,
+   "p95": 9201.4
+  },
+  "non_llm_overhead_ms": {
+   "p50": 129.9,
+   "p95": 850.2
+  }
+ },
+ "steady_state": {
+  "n": 412,
+  "latency_ms": {
+   "p50": 1702.7,
+   "p90": 3740.8,
+   "p95": 4594.0,
+   "p99": 6382.0
+  },
+  "ttft_ms": {
+   "p50": 910.8,
+   "p95": 3253.9
+  },
+  "non_llm_overhead_ms": {
+   "p50": 125.7,
+   "p95": 750.7
+  }
+ },
+ "steady_by_route": {
+  "fast_path": {
+   "n": 341,
+   "latency_ms": {
+    "p50": 1657.7,
+    "p90": 2248.5,
+    "p95": 2732.3,
+    "p99": 3945.1
+   },
+   "ttft_ms": {
+    "p50": 860.0,
+    "p95": 1444.7
+   },
+   "non_llm_overhead_ms": {
+    "p50": 126.0,
+    "p95": 486.0
+   }
+  },
+  "supervisor": {
+   "n": 71,
+   "latency_ms": {
+    "p50": 3770.1,
+    "p90": 5579.0,
+    "p95": 6333.6,
+    "p99": 9302.3
+   },
+   "ttft_ms": {
+    "p50": 2770.5,
+    "p95": 3953.3
+   },
+   "non_llm_overhead_ms": {
+    "p50": 115.5,
+    "p95": 1093.0
+   }
+  }
+ },
+ "synthesizer": {
+  "ttft_ms_p50": 801.5,
+  "tpot_ms_p50": 6.9,
+  "tokens_per_s_p50": 68.1
+ },
+ "llm_calls_per_answer": 1.01,
+ "tokens_per_llm_answer_p50": {
+  "in": 737,
+  "out": 95
+ },
+ "cache_ms_p50": {
+  "single": 59.9,
+  "burst_20_concurrent": 307.5
+ },
+ "verifier_pass": "673/679"
+}

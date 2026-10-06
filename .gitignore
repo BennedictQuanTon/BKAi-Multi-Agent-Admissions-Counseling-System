@@ -50,18 +50,9 @@ dashboard/.env
 dashboard/.env.*
 !dashboard/.env.example
 
-# ===== Knowledge base (SENSITIVE — do NOT commit raw admissions data) =====
-# Keep folder layout via .gitkeep; ignore all real content.
-backend/data/raw/*
-!backend/data/raw/.gitkeep
-backend/data/csv/*
-!backend/data/csv/.gitkeep
-backend/data/pdf/*
-!backend/data/pdf/.gitkeep
-backend/data/docx/*
-!backend/data/docx/.gitkeep
-backend/data/processed/*
-!backend/data/processed/.gitkeep
+# ===== Knowledge base (local only — regenerate with `python -m datahub all`) =====
+backend/data/*
+!backend/data/README.md
 
 # ===== Binary / Pickle artifacts (generated, large) =====
 *.pkl
@@ -107,3 +98,6 @@ test.mp3
 
 # ===== Local reference assets (not part of product) =====
 Voice_Agent_Images/
+
+# ===== Local run state (scripts/start.sh) =====
+.run/

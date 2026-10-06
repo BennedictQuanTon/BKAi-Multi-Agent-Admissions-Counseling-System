@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BKAi">
+  <path d="M32 5 55.4 18.5 32 32 8.6 18.5Z" fill="#9fd3ff"/>
+  <path d="M8.6 18.5 32 32v27l-12.4-7.2-9.4 5.8 2.4-9.8-4-2.3Z" fill="#3aa0f0"/>
+  <path d="M32 32 55.4 18.5v27L32 59Z" fill="#6bb9f7"/>
+  <path d="M32 5 55.4 18.5 32 32 8.6 18.5ZM32 32v27M32 32l23.4-13.5" fill="none" stroke="#0d2f86" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M32 11.5c.6 4.1 1.6 5.1 5.7 6.1-4.1 1-5.1 2-5.7 6.1-.6-4.1-1.6-5.1-5.7-6.1 4.1-1 5.1-2 5.7-6.1Z" fill="#fff"/>
+</svg>

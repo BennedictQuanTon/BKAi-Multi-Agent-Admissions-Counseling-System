@@ -1,0 +1,119 @@
+{
+ "generated_at": "2026-10-06T08:16:49.620739+00:00",
+ "n_cases": 198,
+ "results": [
+  {
+   "config": "minilm hybrid",
+   "hit@1": 0.475,
+   "hit@3": 0.859,
+   "hit@5": 0.924,
+   "mrr@10": 0.674,
+   "ndcg@10": 0.745,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.32,
+     "hit@3": 0.76,
+     "hit@5": 0.84,
+     "mrr@10": 0.562,
+     "ndcg@10": 0.64
+    },
+    "major": {
+     "hit@1": 0.527,
+     "hit@3": 0.892,
+     "hit@5": 0.953,
+     "mrr@10": 0.711,
+     "ndcg@10": 0.78
+    }
+   },
+   "latency_ms_p50": 30.6,
+   "latency_ms_p95": 54.4,
+   "misses@5": [
+    "ngưỡng đảm bảo chất lượng đầu vào xét tuyển tổng hợp",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không",
+    "lịch kiểm tra anh văn xếp lớp",
+    "email tư vấn chương trình quốc tế OISP",
+    "ngành kiến trúc có thi năng khiếu không",
+    "Công nghệ Sinh học học bằng tiếng Anh có chuyên ngành gì",
+    "Cơ Kỹ thuật định hướng Nhật Bản có chuyên ngành gì",
+    "tổ hợp xét tuyển ngành Kỹ thuật Bán dẫn hệ chương trình tiêu chuẩn",
+    "Kỹ thuật Bán dẫn học bằng tiếng Anh có chuyên ngành gì",
+    "Kỹ Thuật Cơ Điện tử học bằng tiếng Anh có chuyên ngành gì",
+    "ngành Thiết kế Vi mạch học bằng tiếng Anh học những gì, tổ hợp nào",
+    "tổ hợp xét tuyển ngành Thiết kế Vi mạch hệ học bằng tiếng Anh"
+   ]
+  },
+  {
+   "config": "vn-emb-v2 hybrid",
+   "hit@1": 0.813,
+   "hit@3": 0.955,
+   "hit@5": 0.975,
+   "mrr@10": 0.886,
+   "ndcg@10": 0.902,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.74,
+     "hit@3": 0.9,
+     "hit@5": 0.94,
+     "mrr@10": 0.826,
+     "ndcg@10": 0.827
+    },
+    "major": {
+     "hit@1": 0.838,
+     "hit@3": 0.973,
+     "hit@5": 0.986,
+     "mrr@10": 0.907,
+     "ndcg@10": 0.927
+    }
+   },
+   "latency_ms_p50": 38.3,
+   "latency_ms_p95": 58.3,
+   "misses@5": [
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không",
+    "Kỹ thuật Bán dẫn học bằng tiếng Anh có chuyên ngành gì",
+    "ngành Kỹ thuật Bán dẫn học bằng tiếng Anh học những gì, tổ hợp nào"
+   ]
+  },
+  {
+   "config": "PROD AITeamVN/Vietnamese_Embedding_v2 + BAAI/bge-reranker-base",
+   "hit@1": 0.828,
+   "hit@3": 0.929,
+   "hit@5": 0.955,
+   "mrr@10": 0.883,
+   "ndcg@10": 0.899,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.82,
+     "hit@3": 0.92,
+     "hit@5": 0.92,
+     "mrr@10": 0.869,
+     "ndcg@10": 0.871
+    },
+    "major": {
+     "hit@1": 0.831,
+     "hit@3": 0.932,
+     "hit@5": 0.966,
+     "mrr@10": 0.887,
+     "ndcg@10": 0.909
+    }
+   },
+   "latency_ms_p50": 276.1,
+   "latency_ms_p95": 331.2,
+   "misses@5": [
+    "SAT 1400 quy đổi được bao nhiêu điểm năng lực",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "email tư vấn chương trình quốc tế OISP",
+    "Kỹ thuật Hóa học chuyển tiếp quốc tế du học Úc có chuyên ngành gì",
+    "Trí tuệ Nhân tạo liên kết UTS có chuyên ngành gì",
+    "Kỹ thuật Bán dẫn học bằng tiếng Anh có chuyên ngành gì",
+    "ngành Kỹ thuật Bán dẫn học bằng tiếng Anh học những gì, tổ hợp nào",
+    "Logistics và Quản lý Chuỗi Cung ứng học bằng tiếng Anh có chuyên ngành gì"
+   ]
+  }
+ ]
+}

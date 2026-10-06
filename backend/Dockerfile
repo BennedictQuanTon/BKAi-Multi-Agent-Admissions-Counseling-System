@@ -1,28 +1,24 @@
-# =============================================
-# BKAi Backend — Python FastAPI
-# =============================================
-FROM python:3.11-slim
+# BKAi backend — FastAPI + LangGraph multi-agent + Qdrant hybrid retrieval + Kokoro TTS
+FROM python:3.12-slim
 
-# Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    TOKENIZERS_PARALLELISM=false \
+    HF_HOME=/models
 
 WORKDIR /app
 
-# Install system dependencies required by some Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+RUN apt-get update && apt-get install -y --no-install-recommends git build-essential libsndfile1 curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for Docker layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source code
 COPY . .
+RUN useradd --create-home --uid 10001 bkai && mkdir -p /models && chown -R bkai:bkai /app /models
+USER bkai
 
-# Expose the FastAPI port
 EXPOSE 8000
-
-# Run the application
+HEALTHCHECK --interval=15s --timeout=5s --start-period=120s --retries=5 \
+    CMD curl -fs http://localhost:8000/api/health || exit 1
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

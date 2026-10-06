@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<style>.tool{font:12.5px ui-monospace,Menlo,monospace;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:2px 6px;display:inline-block;margin:3px 3px 0 0}</style>
+</head><body>
+<div id="canvas" style="width:1640px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">Multi-Agent Orchestration — LangGraph</h1>
+  <p class="sub">A supervisor plans, three specialists with their own tools work in parallel, a synthesizer writes, a verifier checks every number.<br>The same tool registry is published over MCP.</p>
+
+  <div class="row" style="gap:70px; align-items:center">
+    <div class="col" style="gap:22px; width:300px">
+      <div class="box vert c-blue" id="in"><div class="ic"><i data-lucide="message-square-text"></i></div><div class="t">Question + session</div><div class="d" style="text-align:center">history (Redis) · student profile<br>channel: chat | voice</div></div>
+      <div class="box vert c-teal" id="guard"><div class="ic"><i data-lucide="shield-check"></i></div><div class="t">Guard verdict</div><div class="d" style="text-align:center">allow · uncertain · reject</div></div>
+    </div>
+
+    <div class="panel c-orange" id="supp" style="width:330px">
+      <div class="ph"><i data-lucide="sparkles"></i>Supervisor</div>
+      <div class="box c-orange" id="fast" style="margin-bottom:10px"><div class="ic"><i data-lucide="zap"></i></div><div><div class="t">Fast path · 0 LLM</div><div class="d">allow + single-turn + no counselling → deterministic plan from the entity resolver</div></div></div>
+      <div class="box c-orange" id="plan"><div class="ic"><i data-lucide="list-checks"></i></div><div><div class="t">LLM plan · 1 call</div><div class="d">structured <span class="mono">Plan</span>: scope · intents · resolved query · search rewrites · major hints · years · profile patch · clarification</div></div></div>
+      <div class="pills" style="margin-top:8px"><span class="pill p-orange">Gemini 3.5 Flash-Lite</span><span class="pill p-orange">~1.0 s</span></div>
+    </div>
+
+    <div class="col" style="gap:18px; flex:1">
+      <div class="box c-green" id="data"><div class="ic"><i data-lucide="database"></i></div><div style="flex:1"><div class="t">Data agent — numbers only from SQL</div>
+        <div><span class="tool">find_majors</span><span class="tool">get_admission_scores</span><span class="tool">get_quotas</span><span class="tool">get_major_profiles</span><span class="tool">get_tuition</span><span class="tool">get_english_conversion</span><span class="tool">get_timeline</span></div>
+        <div class="d">says explicitly when a requested year has no data (e.g. 2027) and returns the latest instead</div></div></div>
+      <div class="box c-purple" id="policy"><div class="ic"><i data-lucide="book-open-text"></i></div><div style="flex:1"><div class="t">Policy agent — hybrid RAG with a corrective hop</div>
+        <div><span class="tool">search_documents</span><span class="tool">reformulate()</span></div>
+        <div class="d">≤2 rewrites in parallel → top score &lt; 0.15 → expand abbreviations, inject major names, search again</div></div></div>
+      <div class="box c-blue" id="counsel"><div class="ic"><i data-lucide="calculator"></i></div><div style="flex:1"><div class="t">Counsel agent — deterministic tools</div>
+        <div><span class="tool">compute_admission_score</span><span class="tool">recommend_majors</span></div>
+        <div class="d">official 2026 formula (70/20/10, Toán ×2, tapered priority) · bands an toàn / vừa sức / thử thách vs 2026 cut-offs</div></div></div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:70px; margin-top:56px; align-items:stretch">
+    <div class="box vert c-red" id="refuse" style="width:300px"><div class="ic"><i data-lucide="ban"></i></div><div class="t">Refuse</div><div class="d" style="text-align:center">other university · off-topic<br>template answer, 0 LLM</div></div>
+    <div class="box vert c-orange" id="syn" style="flex:1"><div class="ic"><i data-lucide="feather"></i></div><div class="t">Synthesizer</div><div class="d" style="text-align:center">evidence ordered fact → calc → doc · glossary (TH, UTXT, mã 1xx/2xx…)<br>stream tokens · cite [n] · voice persona ≤ 3 sentences · clarify / smalltalk modes</div></div>
+    <div class="box vert c-orange" id="ver" style="flex:1"><div class="ic"><i data-lucide="badge-check"></i></div><div class="t">Verifier</div><div class="d" style="text-align:center">extract scores / quotas / money (VN formats: 85,45 · 31.500.000 · 31,5 triệu)<br>all ∈ evidence → pass · else 1 rewrite + <span class="mono">replace</span> event</div></div>
+    <div class="panel c-slate dashed" id="mcp" style="width:300px">
+      <div class="ph"><i data-lucide="plug"></i>MCP server</div>
+      <div class="d" style="font-size:14px;color:#475569">11 tools, same registry · stdio or streamable-HTTP :8765 · <span class="mono">mcpo</span> → OpenAPI for Open WebUI</div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:16px; margin-top:34px">
+    <div class="box c-green" style="flex:1"><div class="ic"><i data-lucide="target"></i></div><div><div class="t">Why “multi-agent” is now true</div><div class="d">Each specialist owns its tools and its own decision logic (data: resolve → SQL → missing-year fallback · policy: search → judge → corrective hop · counsel: compute → compare). The supervisor fans out through parallel conditional edges; evidence merges through a list reducer.</div></div></div>
+    <div class="box c-orange" style="flex:1"><div class="ic"><i data-lucide="gauge"></i></div><div><div class="t">Cost & latency</div><div class="d">0–2 LLM calls per answer (v4: 2–4). Tools run in worker threads, never on the event loop. Quota-aware Gemini pool fails over to 3.1 Flash-Lite on 429/503.</div></div></div>
+    <div class="box c-red" style="flex:1"><div class="ic"><i data-lucide="flask-conical"></i></div><div><div class="t">Measured</div><div class="d">8/8 real cases · 40/40 numeric exact match · guardrails 16/16 · verifier pass 100% · 0 token leaks under 20 concurrent sessions.</div></div></div>
+  </div>
+  <div id="leg"></div>
+</div>
+<script>
+ready(() => {
+  document.getElementById("leg").outerHTML = legend([["blue","Input · counsel tools"],["orange","Plan / write / verify"],["green","SQL tools"],["purple","Retrieval"],["red","Refusal"],["slate","Shared tools (MCP)",true]]);
+  wire("in","guard",{from:"b",to:"t",color:"blue"});
+  hwire("guard","supp",0.5,{color:"teal"});
+  hwire("supp","data",0.5,{color:"green"});
+  wire("supp","policy",{from:"r",to:"l",color:"purple"});
+  wire("supp","counsel",{from:"r",to:"l",color:"blue"});
+  wire("supp","refuse",{from:"b",to:"t",color:"red",tf:0.15,label:"out of scope"});
+  wire("supp","syn",{from:"b",to:"t",color:"orange",tf:0.7,tt:0.12,label:"smalltalk / clarify",lpos:0.35});
+  wire("counsel","syn",{from:"b",to:"t",color:"orange",tf:0.25,tt:0.75});
+  hwire("syn","ver",0.5,{color:"orange"});
+  hwire("ver","mcp",0.5,{color:"slate",dash:true,left:false,label:"same tools"});
+});
+</script>
+</body></html>

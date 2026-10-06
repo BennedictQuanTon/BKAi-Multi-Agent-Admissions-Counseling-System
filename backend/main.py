@@ -1,104 +1,86 @@
-"""
-BkAI — Agentic RAG Tư vấn Tuyển sinh ĐH Bách Khoa.
-"""
+"""BKAi v5 — Multi-Agent Agentic RAG admissions counsellor for HCMUT."""
 
 from __future__ import annotations
 
-import torch
-torch.set_num_threads(2)
+import asyncio
+import os
+from contextlib import AsyncExitStack, asynccontextmanager
 
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from config.settings import get_settings
-from utils.logger import get_logger, setup_logging
+from config.settings import get_settings  # noqa: E402
+from utils.logger import get_logger, setup_logging  # noqa: E402
 
 logger = get_logger(__name__)
 
+# MCP over streamable HTTP at /mcp, in-process: same tools, same Qdrant client, no second process fighting for the
+# embedded index. Production keeps it private (Caddy answers /mcp with 404). MCP_HTTP=false turns it off.
+MCP_HTTP = os.getenv("MCP_HTTP", "true").lower() not in ("0", "false", "no")
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    settings = get_settings()
+async def lifespan(app: FastAPI):
+    s = get_settings()
+    setup_logging("DEBUG" if s.api.debug else "INFO")
+    if s.app.production and not s.security.admin_token:
+        raise RuntimeError("APP_ENV=production requires ADMIN_TOKEN (protects admin + observability endpoints)")
+    logger.info("bkai_startup", version=s.app.version, llm=s.gemini.model_primary, embedding=s.embedding.model)
+    from knowledge.facts import latest_year
+    from retrieval.models import warmup
+    from workflows.graph import get_graph
 
-    setup_logging(log_level="DEBUG" if settings.api.debug else "INFO")
-    logger.info(
-        "bkai_startup",
-        app_name=settings.app.name,
-        gemini_primary=settings.gemini.model_primary,
-        gemini_fast=settings.gemini.model_fast,
-        api_port=settings.api.port,
-    )
+    latest_year()               # fail fast if facts.sqlite is missing
+    await asyncio.to_thread(warmup)  # embedder + reranker on MPS/CUDA/CPU — no cold first request
+    from memory.answer_cache import _collection
+    from services.audio_service import warmup_tts
 
-    try:
-        from ingestion.embedder import get_embedding_model, get_bge_model
-        if "bge-m3" in settings.embedding.model.lower():
-            get_bge_model()
-        else:
-            get_embedding_model()
-        logger.info("embedding_model_warmed")
-    except Exception as e:
-        logger.warning("embedding_warmup_failed", error=str(e))
+    await asyncio.to_thread(warmup_tts)  # Kokoro TTS (~10 s on CPU) — before "ready", not during the first request
+    await asyncio.to_thread(_collection)
+    get_graph()
+    async with AsyncExitStack() as stack:
+        if MCP_HTTP:
+            from mcp_server import server as mcp
 
-    try:
-        from workflows.main_graph import get_compiled_graph
-        get_compiled_graph()
-        logger.info("langgraph_warmed")
-    except Exception as e:
-        logger.warning("langgraph_warmup_failed", error=str(e))
+            await stack.enter_async_context(mcp.session_manager.run())
+        logger.info("bkai_ready", mcp="/mcp" if MCP_HTTP else "off")
+        yield
+    from retrieval.store import get_client
 
-    try:
-        from memory.semantic_cache import get_redis_cache, get_redis_stats
-        get_redis_cache().ping()
-        get_redis_stats().ping()
-        logger.info("redis_connected")
-    except Exception as e:
-        logger.warning("redis_connection_failed", error=str(e))
-
-    yield
-    logger.info("bkai_shutdown")
+    get_client().close()
 
 
 def create_app() -> FastAPI:
-    settings = get_settings()
+    s = get_settings()
+    docs = not s.app.production
+    app = FastAPI(title=f"{s.app.name} — Tư vấn tuyển sinh ĐH Bách khoa ĐHQG-HCM", version=s.app.version,
+                  lifespan=lifespan, docs_url="/docs" if docs else None, redoc_url=None,
+                  openapi_url="/openapi.json" if docs else None)
+    from api.security import SecurityMiddleware
 
-    app = FastAPI(
-        title=f"{settings.app.name} — Tư vấn Tuyển sinh Bách Khoa",
-        description="Agentic RAG system for HCMUT admissions counseling",
-        version="3.0.0",
-        lifespan=lifespan,
-    )
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.api.cors_origin_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
+    app.add_middleware(SecurityMiddleware)
+    app.add_middleware(CORSMiddleware, allow_origins=s.api.cors_origin_list, allow_credentials=False,
+                       allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
     from api.routes import router
-    app.include_router(router)
-
+    from api.voice import voice_router
     from api.websocket import ws_router
-    app.include_router(ws_router)
 
+    app.include_router(router)
+    app.include_router(ws_router)
+    app.include_router(voice_router)
+    if MCP_HTTP:
+        from mcp_server import server as mcp
+
+        app.router.routes.extend(mcp.streamable_http_app(streamable_http_path="/mcp", stateless_http=True).routes)
     return app
 
 
 app = create_app()
 
-
 if __name__ == "__main__":
     import uvicorn
 
-    settings = get_settings()
-    uvicorn.run(
-        "main:app",
-        host=settings.api.host,
-        port=settings.api.port,
-        reload=True,
-        log_level="info",
-    )
+    s = get_settings()
+    uvicorn.run("main:app", host=s.api.host, port=s.api.port, log_level="info")

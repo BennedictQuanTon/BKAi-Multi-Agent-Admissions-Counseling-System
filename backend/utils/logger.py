@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Any
 
 import structlog
 
@@ -72,7 +71,7 @@ def setup_logging(log_level: str = "INFO") -> None:
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
     # Suppress noisy third-party loggers
-    for name in ("httpx", "httpcore", "chromadb", "uvicorn.access"):
+    for name in ("httpx", "httpcore", "uvicorn.access", "sentence_transformers", "google_genai", "urllib3"):
         logging.getLogger(name).setLevel(logging.WARNING)
 
 
@@ -87,60 +86,3 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
         A bound structlog logger instance.
     """
     return structlog.get_logger(name)
-
-
-class AgentTracer:
-    """
-    Utility for tracing agent pipeline execution.
-
-    Logs structured events for each step of the multi-agent workflow,
-    enabling performance monitoring and debugging.
-
-    Usage:
-        tracer = AgentTracer("orchestrator")
-        tracer.start("query_rewrite", query="user question")
-        # ... do work ...
-        tracer.end("query_rewrite", result="rewritten query")
-    """
-
-    def __init__(self, agent_name: str) -> None:
-        self.logger = get_logger(f"agent.{agent_name}")
-        self.agent_name = agent_name
-
-    def start(self, step: str, **kwargs: Any) -> None:
-        """Log the start of an agent step."""
-        self.logger.info(
-            "agent_step_start",
-            agent=self.agent_name,
-            step=step,
-            **kwargs,
-        )
-
-    def end(self, step: str, **kwargs: Any) -> None:
-        """Log the end of an agent step."""
-        self.logger.info(
-            "agent_step_end",
-            agent=self.agent_name,
-            step=step,
-            **kwargs,
-        )
-
-    def error(self, step: str, error: str, **kwargs: Any) -> None:
-        """Log an error during an agent step."""
-        self.logger.error(
-            "agent_step_error",
-            agent=self.agent_name,
-            step=step,
-            error=error,
-            **kwargs,
-        )
-
-    def metric(self, name: str, value: float, **kwargs: Any) -> None:
-        """Log a performance metric."""
-        self.logger.info(
-            "agent_metric",
-            agent=self.agent_name,
-            metric_name=name,
-            metric_value=value,
-            **kwargs,
-        )

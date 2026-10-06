@@ -1,349 +1,194 @@
 """
-BKAi Audio Service.
+Voice I/O.
 
-Provides Speech-to-Text (STT) via faster-whisper and
-Text-to-Speech (TTS) via edge-tts, both running 100% locally/free.
-
-Design:
-    - Whisper model is lazy-loaded as a singleton (loaded once on first use).
-    - STT runs synchronously in a thread pool to avoid blocking the event loop.
-    - TTS is natively async (edge-tts uses aiohttp internally).
+TTS  — Kokoro-Vietnamese (local ONNX/torch, Apache-2.0) by default: chosen by evaluation/run_tts_bench.py
+       (~0.6 s per sentence on CPU vs edge-tts ~3.8 s TTFB). Falls back to edge-tts, then Gemini TTS.
+       Output: 24 kHz mono PCM16, synthesised sentence-by-sentence so playback starts after the first chunk.
+STT  — AssemblyAI Universal-3.6 Pro streaming (Vietnamese, semantic turn detection, keyterm boosting) when
+       ASSEMBLYAI_API_KEY is set; otherwise local faster-whisper on push-to-talk utterances.
 """
 
 from __future__ import annotations
 
 import asyncio
-import re
-import os
-from pathlib import Path
+import io
+import json
+import threading
+import time
+import wave
+from collections.abc import AsyncIterator
+from functools import lru_cache
+from urllib.parse import urlencode
 
+import numpy as np
+
+from config.settings import get_settings
+from services.tts_text import speech_chunks
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-# ──────────────────────────────────────────────
-# Configuration
-# ──────────────────────────────────────────────
-WHISPER_MODEL_SIZE = "base"       # "tiny" (~40MB) or "base" (~150MB)
-WHISPER_DEVICE = "cpu"
-WHISPER_COMPUTE_TYPE = "int8"     # Quantized for CPU performance
-WHISPER_LANGUAGE = "vi"           # Vietnamese
-
-# Domain-specific prompt hint — biases Whisper decoder towards
-# admissions vocabulary so "bắt khoa" → "Bách Khoa" etc.
-WHISPER_INITIAL_PROMPT = (
-    "Tư vấn tuyển sinh Đại học Bách Khoa, ĐHQG-HCM. "
-    "Các ngành: Khoa học Máy tính, Công nghệ Thông tin, Cơ khí, "
-    "Cơ điện tử, Điện - Điện tử, Kỹ thuật Hóa học, Quản lý Công nghiệp. "
-    "Điểm chuẩn, chỉ tiêu, học phí, xét tuyển, ĐGNL, THPT, "
-    "ký túc xá, học bổng, chương trình đào tạo."
-)
-
-TTS_VOICE = "vi-VN-HoaiMyNeural"  # Natural Vietnamese female voice
-TTS_RATE = "+0%"                  # Speech rate adjustment
-TTS_VOLUME = "+0%"                # Volume adjustment
+SAMPLE_RATE_OUT = 24000
+_tts_lock = threading.Lock()
 
 
 # ──────────────────────────────────────────────
-# Domain Post-Processing (Layer 2 & 3)
+# TTS engines → PCM16 bytes @ 24 kHz
 # ──────────────────────────────────────────────
-# Common STT mistakes → correct domain terms
-DOMAIN_CORRECTIONS: dict[str, str] = {
-    # Tên trường
-    "bắt khoa": "Bách Khoa",
-    "bach khoa": "Bách Khoa",
-    "bát khoa": "Bách Khoa",
-    "bặt khoa": "Bách Khoa",
-    "bậc khoa": "Bách Khoa",
-    "bạch khoa": "Bách Khoa",
-    # Viết tắt đọc thành chữ
-    "đê hát cu gê": "ĐHQG",
-    "đê hát cê gê": "ĐHQG",
-    "đê gê n l": "ĐGNL",
-    "đê gê nờ lờ": "ĐGNL",
-    "cê n tê tê": "CNTT",
-    "ka hát m tê": "KHMT",
-    # Thuật ngữ tuyển sinh
-    "xét tuyến": "xét tuyển",
-    "tuyến sinh": "tuyển sinh",
-    "chị tiêu": "chỉ tiêu",
-    "chì tiêu": "chỉ tiêu",
-    "điểm chuyển": "điểm chuẩn",
-    "điểm chuẩng": "điểm chuẩn",
-    "điểm chuẩ": "điểm chuẩn",
-    "học phỉ": "học phí",
-    "học phì": "học phí",
-    "ngành hộc": "ngành học",
-    "ngàng học": "ngành học",
-    "kí túc xá": "ký túc xá",
-    "kì túc xá": "ký túc xá",
-    "học bỗng": "học bổng",
-    "hộc bổng": "học bổng",
-    # Tên ngành
-    "cơ khỉ": "Cơ khí",
-    "cơ khì": "Cơ khí",
-    "khoa hộc máy tính": "Khoa học Máy tính",
-    "công nghề thông tin": "Công nghệ Thông tin",
-    "công nghệ thông tín": "Công nghệ Thông tin",
-    "kỷ thuật": "kỹ thuật",
-    "quản lí": "quản lý",
-}
+@lru_cache(maxsize=1)
+def _kokoro():
+    from kokoro_vietnamese import KokoroVietnamese
 
-# Keywords indicating the query is about admissions domain
-DOMAIN_KEYWORDS = {
-    "bách khoa", "tuyển sinh", "điểm chuẩn", "ngành", "học phí",
-    "chỉ tiêu", "xét tuyển", "đgnl", "thpt", "đại học", "chương trình",
-    "ký túc xá", "học bổng", "thạc sĩ", "kỹ sư", "cơ khí", "cntt",
-    "điện tử", "hóa học", "công nghệ", "khoa học", "máy tính",
-    "nhập học", "hồ sơ", "đăng ký", "mã ngành", "trường",
-}
+    return KokoroVietnamese(device="cpu", voice=get_settings().voice.kokoro_voice)
 
 
-def _domain_post_process(text: str) -> str:
-    """
-    Layer 2: Fix common STT mistakes for admissions domain.
-
-    Scans the transcribed text for known misheard patterns and
-    replaces them with the correct Vietnamese terms.
-    """
-    if not text:
-        return text
-
-    result = text
-    for wrong, correct in DOMAIN_CORRECTIONS.items():
-        # Case-insensitive full word replacement using lookarounds
-        pattern = re.compile(r'(?<![\w])' + re.escape(wrong) + r'(?![\w])', re.IGNORECASE)
-        result = pattern.sub(correct, result)
-
-    return result.strip()
+def _float_to_pcm16(audio) -> bytes:
+    a = np.clip(np.asarray(audio, dtype=np.float32), -1.0, 1.0)
+    return (a * 32767).astype("<i2").tobytes()
 
 
-def _add_domain_context(text: str) -> str:
-    """
-    Layer 3: Append domain context hint if no keywords detected.
-
-    Ensures the RAG pipeline understands the question is about
-    HCMUT admissions even if the user's speech was vague.
-    """
-    text_lower = text.lower()
-    if not any(kw in text_lower for kw in DOMAIN_KEYWORDS):
-        return text + " (về tuyển sinh Đại học Bách Khoa)"
-    return text
+def _kokoro_pcm(text: str) -> bytes:
+    with _tts_lock:
+        audio, _ = _kokoro().synthesize(text)
+    return _float_to_pcm16(audio)
 
 
-# ──────────────────────────────────────────────
-# Whisper Model Singleton
-# ──────────────────────────────────────────────
-_whisper_model = None
-
-
-def _get_whisper_model():
-    """
-    Get or initialize the faster-whisper model (singleton).
-
-    The model is loaded once on first call and reused for all
-    subsequent transcriptions to avoid repeated cold starts.
-    """
-    global _whisper_model
-    if _whisper_model is None:
-        from faster_whisper import WhisperModel
-
-        logger.info(
-            "whisper_model_loading",
-            model=WHISPER_MODEL_SIZE,
-            device=WHISPER_DEVICE,
-            compute_type=WHISPER_COMPUTE_TYPE,
-        )
-
-        _whisper_model = WhisperModel(
-            WHISPER_MODEL_SIZE,
-            device=WHISPER_DEVICE,
-            compute_type=WHISPER_COMPUTE_TYPE,
-        )
-
-        logger.info("whisper_model_loaded")
-
-    return _whisper_model
-
-
-# ──────────────────────────────────────────────
-# Speech-to-Text (STT)
-# ──────────────────────────────────────────────
-def _transcribe_sync(audio_path: str) -> dict:
-    """
-    Synchronous transcription using faster-whisper.
-
-    This runs in a thread pool via asyncio.to_thread() to
-    avoid blocking the FastAPI event loop.
-
-    Args:
-        audio_path: Path to audio file (WAV, MP3, WebM, etc.)
-
-    Returns:
-        Dict with 'text', 'language', 'duration' keys.
-    """
-    model = _get_whisper_model()
-
-    segments, info = model.transcribe(
-        audio_path,
-        language=WHISPER_LANGUAGE,
-        beam_size=5,
-        initial_prompt=WHISPER_INITIAL_PROMPT,  # Layer 1: domain bias
-        vad_filter=True,
-        vad_parameters={
-            "min_silence_duration_ms": 500,
-            "speech_pad_ms": 200,
-        },
-    )
-
-    # Collect all segment texts
-    texts = []
-    for segment in segments:
-        texts.append(segment.text.strip())
-
-    raw_text = " ".join(texts).strip()
-
-    # Layer 2: Fix domain-specific misheard words
-    corrected_text = _domain_post_process(raw_text)
-
-    # Layer 3: Add domain context if no keywords found
-    final_text = _add_domain_context(corrected_text)
-
-    logger.info(
-        "stt_post_process",
-        raw=raw_text[:100],
-        corrected=corrected_text[:100],
-        final=final_text[:100],
-    )
-
-    return {
-        "text": final_text,
-        "language": info.language,
-        "language_probability": round(info.language_probability, 4),
-        "duration": round(info.duration, 2),
-    }
-
-
-async def speech_to_text(audio_path: str) -> dict:
-    """
-    Transcribe audio file to Vietnamese text (async wrapper).
-
-    Runs Whisper in a background thread to not block the event loop.
-
-    Args:
-        audio_path: Path to audio file.
-
-    Returns:
-        Dict with:
-            - text: Transcribed Vietnamese text.
-            - language: Detected language code.
-            - duration: Audio duration in seconds.
-    """
-    logger.info("stt_start", audio_path=audio_path)
-
-    try:
-        result = await asyncio.to_thread(_transcribe_sync, audio_path)
-
-        logger.info(
-            "stt_complete",
-            text_length=len(result["text"]),
-            language=result["language"],
-            duration=result["duration"],
-        )
-
-        return result
-
-    except Exception as e:
-        logger.error("stt_error", error=str(e))
-        raise
-
-
-# ──────────────────────────────────────────────
-# Text-to-Speech (TTS)
-# ──────────────────────────────────────────────
-def _clean_text_for_tts(text: str) -> str:
-    """
-    Clean text for natural TTS output.
-
-    Removes markdown formatting, special characters, and
-    excessive whitespace that would sound unnatural when spoken.
-    """
-    # Remove markdown bold/italic
-    text = re.sub(r"\*\*\*(.+?)\*\*\*", r"\1", text)
-    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-    text = re.sub(r"\*(.+?)\*", r"\1", text)
-
-    # Remove markdown headers
-    text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
-
-    # Remove markdown links, keep text
-    text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-
-    # Remove bullet points
-    text = re.sub(r"^[\-\*]\s+", "", text, flags=re.MULTILINE)
-
-    # Remove numbered list markers
-    text = re.sub(r"^\d+\.\s+", "", text, flags=re.MULTILINE)
-
-    # Remove horizontal rules
-    text = re.sub(r"^-{3,}$", "", text, flags=re.MULTILINE)
-
-    # Clean special characters that TTS struggles with
-    text = re.sub(r"[#_`~|>]", "", text)
-
-    # Collapse multiple newlines/spaces
-    text = re.sub(r"\n{2,}", ". ", text)
-    text = re.sub(r"\n", " ", text)
-    text = re.sub(r"\s{2,}", " ", text)
-
-    return text.strip()
-
-
-async def text_to_speech(text: str, output_path: str) -> str:
-    """
-    Synthesize Vietnamese speech from text using edge-tts.
-
-    Edge-tts uses Microsoft Edge's online TTS service which is
-    free and produces high-quality natural Vietnamese speech.
-
-    Args:
-        text: Vietnamese text to speak.
-        output_path: Path to save the output MP3 file.
-
-    Returns:
-        Path to the generated audio file.
-    """
+async def _edge_pcm(text: str) -> bytes:
+    import av
     import edge_tts
 
-    # Clean text for natural speech
-    clean_text = _clean_text_for_tts(text)
+    mp3 = bytearray()
+    async for chunk in edge_tts.Communicate(text, get_settings().voice.edge_voice).stream():
+        if chunk["type"] == "audio":
+            mp3 += chunk["data"]
+    container = av.open(io.BytesIO(bytes(mp3)))
+    resampler = av.audio.resampler.AudioResampler(format="s16", layout="mono", rate=SAMPLE_RATE_OUT)
+    pcm = bytearray()
+    for frame in container.decode(audio=0):
+        for f in resampler.resample(frame):
+            pcm += f.to_ndarray().tobytes()
+    return bytes(pcm)
 
-    if not clean_text:
-        clean_text = "Xin lỗi, tôi không thể xử lý câu trả lời này."
 
-    # Truncate very long text for TTS (edge-tts has limits)
-    if len(clean_text) > 3000:
-        clean_text = clean_text[:3000] + "... Nội dung còn lại vui lòng đọc trên màn hình."
+async def _gemini_pcm(text: str) -> bytes:
+    from google import genai
+    from google.genai import types
 
-    logger.info(
-        "tts_start",
-        text_length=len(clean_text),
-        voice=TTS_VOICE,
-    )
+    s = get_settings()
+    client = genai.Client(api_key=s.google.api_key)
+    cfg = types.GenerateContentConfig(response_modalities=["AUDIO"], speech_config=types.SpeechConfig(
+        voice_config=types.VoiceConfig(prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=s.voice.gemini_tts_voice))))
+    pcm = bytearray()
+    async for chunk in await client.aio.models.generate_content_stream(model=s.voice.gemini_tts_model, contents=text,
+                                                                      config=cfg):
+        for part in (chunk.candidates[0].content.parts if chunk.candidates and chunk.candidates[0].content else []):
+            if part.inline_data and part.inline_data.data:
+                pcm += part.inline_data.data
+    return bytes(pcm)
 
-    try:
-        communicate = edge_tts.Communicate(
-            text=clean_text,
-            voice=TTS_VOICE,
-            rate=TTS_RATE,
-            volume=TTS_VOLUME,
-        )
 
-        await communicate.save(output_path)
+async def synth_chunk(text: str) -> bytes:
+    order = {"kokoro": ["kokoro", "edge", "gemini"], "edge": ["edge", "kokoro", "gemini"],
+             "gemini": ["gemini", "kokoro", "edge"]}.get(get_settings().voice.tts_provider, ["kokoro", "edge"])
+    for engine in order:
+        try:
+            if engine == "kokoro":
+                return await asyncio.to_thread(_kokoro_pcm, text)
+            if engine == "edge":
+                return await _edge_pcm(text)
+            return await _gemini_pcm(text)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("tts_engine_failed", engine=engine, error=str(e)[:160])
+    return b""
 
-        logger.info("tts_complete", output_path=output_path)
-        return output_path
 
-    except Exception as e:
-        logger.error("tts_error", error=str(e))
-        raise
+async def tts_pcm_stream(text: str) -> AsyncIterator[bytes]:
+    """Synthesise sentence chunks; the next chunk is prepared while the current one is being sent."""
+    chunks = speech_chunks(text)
+    if not chunks:
+        return
+    pending = asyncio.create_task(synth_chunk(chunks[0]))
+    for nxt in [*chunks[1:], None]:
+        pcm = await pending
+        if nxt is not None:
+            pending = asyncio.create_task(synth_chunk(nxt))
+        if pcm:
+            yield pcm
+
+
+def wav_header(sample_rate: int = SAMPLE_RATE_OUT) -> bytes:
+    b = io.BytesIO()
+    with wave.open(b, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sample_rate)
+        w.writeframes(b"")
+    h = bytearray(b.getvalue())
+    h[4:8] = (0xFFFFFFFF).to_bytes(4, "little")    # unknown length → streamable WAV
+    h[40:44] = (0xFFFFFFFF).to_bytes(4, "little")
+    return bytes(h)
+
+
+async def tts_stream(text: str) -> AsyncIterator[bytes]:
+    """Streaming WAV for the REST endpoint."""
+    yield wav_header()
+    async for pcm in tts_pcm_stream(text):
+        yield pcm
+
+
+def warmup_tts() -> None:
+    if get_settings().voice.tts_provider == "kokoro":
+        _kokoro_pcm("xin chào")
+
+
+# ──────────────────────────────────────────────
+# STT
+# ──────────────────────────────────────────────
+_STT = {"sessions": 0, "turns": 0, "errors": 0, "last_turn_at": None, "last_error": None}
+
+
+def stt_record(kind: str, error: str = "") -> None:
+    if kind == "session":
+        _STT["sessions"] += 1
+    elif kind == "turn":
+        _STT["turns"] += 1
+        _STT["last_turn_at"] = time.time()
+    elif kind == "error":
+        _STT["errors"] += 1
+        _STT["last_error"] = error[:160]
+
+
+def stt_stats() -> dict:
+    return dict(_STT)
+
+
+@lru_cache(maxsize=1)
+def keyterms() -> list[str]:
+    from knowledge.facts import query
+
+    names = [r["name"] for r in query("SELECT DISTINCT name FROM majors") if len(r["name"]) <= 50]
+    base = ["Bách khoa", "HCMUT", "ĐGNL", "đánh giá năng lực", "điểm chuẩn", "chỉ tiêu", "xét tuyển tổng hợp",
+            "học bạ", "tổ hợp", "ký túc xá", "học phí", "IELTS", "UTS", "PFIEV", "chương trình tiếng Anh"]
+    return list(dict.fromkeys(base + names))[:100]
+
+
+def assemblyai_url() -> str:
+    s = get_settings().assemblyai
+    params = {"speech_model": s.speech_model, "sample_rate": s.sample_rate, "encoding": "pcm_s16le",
+              "language_codes": json.dumps(["vi", "en"]), "keyterms_prompt": json.dumps(keyterms(), ensure_ascii=False),
+              "min_turn_silence": 400, "max_turn_silence": 1500}
+    return "wss://streaming.assemblyai.com/v3/ws?" + urlencode(params)
+
+
+@lru_cache(maxsize=1)
+def _whisper():
+    from faster_whisper import WhisperModel
+
+    return WhisperModel("large-v3-turbo", device="cpu", compute_type="int8")
+
+
+def transcribe_pcm16(pcm: bytes) -> str:
+    """PCM16 mono 16 kHz → text (faster-whisper large-v3-turbo, int8 CPU)."""
+    audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+    segs, _ = _whisper().transcribe(audio, language="vi", beam_size=1, vad_filter=True,
+                                    initial_prompt="Tư vấn tuyển sinh Đại học Bách khoa: điểm chuẩn, chỉ tiêu, ĐGNL, học phí.")
+    return " ".join(s.text.strip() for s in segs).strip()

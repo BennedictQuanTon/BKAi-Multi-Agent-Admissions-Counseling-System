@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<style>.kpi{font-size:30px;font-weight:800;color:#0f172a;line-height:1.1}.kpi small{font-size:15px;font-weight:600;color:#64748b}</style>
+</head><body>
+<div id="canvas" style="width:1600px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">Evaluation Framework</h1>
+  <p class="sub">Six suites, each a script with a JSON report the dashboard reads. Offline suites need no LLM quota; online suites hit the real API with real Gemini calls.</p>
+
+  <div class="row" style="gap:18px">
+    <div class="panel c-blue" style="flex:1">
+      <div class="ph"><i data-lucide="search-check"></i>Retrieval (offline)</div>
+      <div class="kpi">0.955 <small>Hit@5</small></div><div class="kpi">0.883 <small>MRR@10</small></div>
+      <ul class="bul"><li>198 queries: every major × 2 phrasings + 50 policy</li><li>labels self-checked against the corpus</li><li>4 embeddings × 3 modes × 3 rerankers</li><li>Hit@1/3/5 · MRR · nDCG · p50/p95</li></ul>
+      <div class="note mono">run_retrieval_bench.py</div>
+    </div>
+    <div class="panel c-orange" style="flex:1">
+      <div class="ph"><i data-lucide="list-checks"></i>8 real cases</div>
+      <div class="kpi">8 / 8 <small>passed</small></div><div class="kpi">1.8 s <small>p50 · 5.0 s p95</small></div>
+      <ul class="bul"><li>2 easy · 2 medium · 2 hard · 2 out-of-scope</li><li>multi-turn calculator → recommendation</li><li>unanswerable 2027 cut-off</li><li>deterministic must / must-not grading</li></ul>
+      <div class="note mono">run_e2e_bench.py · cases8</div>
+    </div>
+    <div class="panel c-green" style="flex:1">
+      <div class="ph"><i data-lucide="hash"></i>Numeric exact match</div>
+      <div class="kpi">200 / 200 <small>exact</small></div><div class="kpi">[0.98, 1.0] <small>Wilson 95%</small></div>
+      <ul class="bul"><li>questions generated from facts.sqlite</li><li>150 cut-offs (2024–26 × 6 programs) + 50 quotas</li><li>varied phrasing incl. code-only</li><li>verifier pass rate 100%</li></ul>
+      <div class="note mono">run_e2e_bench.py · factual</div>
+    </div>
+  </div>
+  <div class="row" style="gap:18px; margin-top:18px">
+    <div class="panel c-red" style="flex:1">
+      <div class="ph"><i data-lucide="shield-check"></i>Guardrails & scope</div>
+      <div class="kpi">60 / 60 <small>correct</small></div><div class="kpi">1.0 · 1.0 <small>precision · recall</small></div>
+      <ul class="bul"><li>rules + LLM supervisor for uncertain inputs</li><li>other universities · off-topic · injection</li><li>in-scope questions without keywords</li></ul>
+      <div class="note mono">run_e2e_bench.py · guard</div>
+    </div>
+    <div class="panel c-purple" style="flex:1">
+      <div class="ph"><i data-lucide="users"></i>Load & isolation</div>
+      <div class="kpi">20 <small>concurrent cache hits · p50 344 ms</small></div><div class="kpi">0 <small>errors · 0 token leaks</small></div>
+      <ul class="bul"><li>6 concurrent LLM answers: p50 1.65 s</li><li>quota-aware failover pool</li><li>per-IP rate limit verified (HTTP 429)</li></ul>
+      <div class="note mono">run_e2e_bench.py · load</div>
+    </div>
+    <div class="panel c-teal" style="flex:1">
+      <div class="ph"><i data-lucide="volume-2"></i>Voice</div>
+      <div class="kpi">591 ms <small>Kokoro TTFB</small></div><div class="kpi">0.12–0.16 <small>ASR round-trip CER</small></div>
+      <ul class="bul"><li>edge-tts vs Kokoro vs Gemini TTS</li><li>Whisper large-v3-turbo intelligibility</li><li>end-to-end first-audio probe</li></ul>
+      <div class="note mono">run_tts_bench.py</div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:16px; margin-top:24px">
+    <div class="box c-slate" style="flex:1"><div class="ic"><i data-lucide="test-tube-diagonal"></i></div><div><div class="t">Unit tests — 36 / 36</div><div class="d">resolver · entity keys · official formula · bands · verifier (VN number formats) · guardrails · table expansion · chunk splitting · event-bus isolation. <span class="mono">pytest -q</span> (no LLM, no network).</div></div></div>
+    <div class="box c-slate" style="flex:1"><div class="ic"><i data-lucide="database-zap"></i></div><div><div class="t">Data quality gate</div><div class="d">validation_report.json: 0 errors · 0 warnings · Σ quota = 5,685 (official) · 67/67 scores match an independent copy.</div></div></div>
+    <div class="box c-slate" style="flex:1"><div class="ic"><i data-lucide="eye"></i></div><div><div class="t">Online signals</div><div class="d">Observability: p50–p99 latency, TTFT/TPOT per Gemini call, tokens, confidence, categories, owner accuracy, live per-query waterfall. Student e2e 9/9 · memory holds 7 distractor turns.</div></div></div>
+  </div>
+</div>
+<script>ready(() => {});</script>
+</body></html>

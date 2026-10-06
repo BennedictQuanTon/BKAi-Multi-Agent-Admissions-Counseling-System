@@ -1,384 +1,278 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import {
-  ChatMetadata,
-  sendFeedback,
-  WS_BASE,
-  getSessionId,
-  newSessionId,
-  clearServerSession,
-} from "../lib/api";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { ArrowRight, BookOpenCheck, Calculator, GraduationCap, Landmark, Mic, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { AgentTrace } from "../components/AgentTrace";
+import { AnswerMeta, Markdown, Sources } from "../components/Answer";
+import { Composer } from "../components/Composer";
+import { api, ChatSocket, getSessionId, loadTranscript, rememberSession, saveTranscript, type ChatEvent, type Done, type Source, type TraceEvent } from "../lib/api";
+import { fadeUp, spring, stagger } from "../lib/motion";
 
-type Message = {
+type Turn = {
   id: string;
-  role: "user" | "assistant";
-  content: string;
-  streaming?: boolean;
-  metadata?: ChatMetadata;
+  q: string;
+  shown: string;
+  target: string;
+  trace: TraceEvent[];
+  sources: Source[];
+  done?: Done;
+  error?: string;
+  restored?: boolean;
 };
 
 const SUGGESTIONS = [
-  "Điểm chuẩn ngành Khoa học Máy tính mã 106?",
-  "Học phí chương trình Tiếng Anh?",
-  "Chỉ tiêu tuyển sinh năm 2025?",
-  "Phương thức xét tuyển ĐGNL tại HCMUT?",
+  { icon: GraduationCap, title: "Điểm chuẩn 2026", desc: "Ngành Khoa học Máy tính lấy bao nhiêu điểm năm nay?", q: "Điểm chuẩn ngành Khoa học Máy tính năm 2026 là bao nhiêu?" },
+  { icon: Calculator, title: "Công thức xét tuyển", desc: "Điểm học lực, điểm cộng, điểm ưu tiên tính thế nào?", q: "Công thức tính điểm xét tuyển tổng hợp năm 2026 gồm những gì?" },
+  { icon: Landmark, title: "Học phí", desc: "So sánh học phí chương trình tiêu chuẩn và tiếng Anh", q: "Học phí chương trình tiêu chuẩn và chương trình tiếng Anh năm 2026-2027 là bao nhiêu?" },
+  { icon: BookOpenCheck, title: "Chọn ngành", desc: "Mình được 80 điểm, thích AI thì nên chọn ngành nào?", q: "Mình được khoảng 80 điểm xét tuyển tổng hợp, thích AI và máy tính, nên chọn ngành nào?" },
 ];
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [status, setStatus] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(() => getSessionId());
-  const wsRef = useRef<WebSocket | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+const FOLLOW_UPS: Record<string, string[]> = {
+  facts: ["Chỉ tiêu năm 2026 của ngành này là bao nhiêu?", "Tổ hợp xét tuyển của ngành này gồm những môn nào?"],
+  policy: ["Chuẩn tiếng Anh đầu vào của chương trình dạy bằng tiếng Anh là gì?", "Điểm ưu tiên khu vực được tính như thế nào?"],
+  counsel: ["Học phí của các chương trình được gợi ý là bao nhiêu?", "Nếu có thêm điểm ưu tiên khu vực thì kết quả thay đổi ra sao?"],
+};
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, status]);
+function Wordmark() {
+  return (
+    <motion.h1 variants={stagger(0.05)} initial="hidden" animate="show" className="flex justify-center text-[44px] font-medium tracking-tight text-ink" aria-label="BKAi">
+      {"BKAi".split("").map((c, i) => (
+        <motion.span key={i} variants={{ hidden: { opacity: 0, y: 14, filter: "blur(0px)" }, show: { opacity: 1, y: 0, transition: spring } }}>
+          {c}
+        </motion.span>
+      ))}
+    </motion.h1>
+  );
+}
 
+export default function ChatPage({ sessionId, onFirstQuestion }: { sessionId: string; onFirstQuestion: (q: string) => void }) {
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [busy, setBusy] = useState(false);
+  const socket = useRef(new ChatSocket());
+  const bottom = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
+
+  // Restore the conversation: this device's transcript first (instant, survives server TTL),
+  // otherwise the server's memory of the session (last 12 messages).
   useEffect(() => {
-    const ws = new WebSocket(`${WS_BASE}/ws/chat`);
-    wsRef.current = ws;
-    return () => ws.close();
+    const sid = params.get("s") || sessionId;
+    const local = loadTranscript(sid);
+    setTurns(local.map((t, i) => ({ id: `l${i}`, q: t.q, shown: t.a, target: t.a, trace: [], sources: t.sources ?? [], restored: true })));
+    if (local.length) return;
+    api.session(sid).then(({ history }) => {
+      const restored: Turn[] = [];
+      for (let i = 0; i < history.length; i += 2) {
+        const a = history[i + 1]?.content ?? "";
+        restored.push({ id: `r${i}`, q: history[i].content, shown: a, target: a, trace: [], sources: [], restored: true });
+      }
+      setTurns(restored);
+    }).catch(() => undefined);
+  }, [params, sessionId]);
+
+  // keep this device's copy of the transcript up to date (finished turns only)
+  useEffect(() => {
+    if (busy) return;
+    const done = turns.filter((t) => (t.done || t.restored) && t.target);
+    if (done.length) saveTranscript(params.get("s") || sessionId, done.map((t) => ({ q: t.q, a: t.target, sources: t.sources.slice(0, 6) })));
+  }, [turns, busy, params, sessionId]);
+
+  useEffect(() => () => socket.current.close(), []);
+
+  // smooth streaming: reveal buffered tokens at a steady, backlog-proportional pace
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      setTurns((ts) => {
+        let changed = false;
+        const next = ts.map((t) => {
+          if (t.shown.length >= t.target.length) return t;
+          changed = true;
+          const backlog = t.target.length - t.shown.length;
+          const step = Math.max(2, Math.ceil(backlog / 12));
+          return { ...t, shown: t.target.slice(0, t.shown.length + step) };
+        });
+        return changed ? next : ts;
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  async function startNewChat() {
-    await clearServerSession(sessionId);
-    const sid = newSessionId();
-    setSessionId(sid);
-    setMessages([]);
-    setInput("");
-    setStatus("");
-    setLoading(false);
-  }
-  async function submitQuery(query: string) {
-    if (!query.trim() || loading) return;
+  useEffect(() => {
+    if (turns.length) bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [turns.length, busy]);
 
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: query.trim(),
-    };
-    const assistantId = crypto.randomUUID();
-    setMessages((prev) => [
-      ...prev,
-      userMsg,
-      { id: assistantId, role: "assistant", content: "", streaming: true },
-    ]);
-    setInput("");
-    setLoading(true);
-    setStatus("Đang kết nối...");
+  const ask = useCallback(
+    async (q: string) => {
+      const sid = params.get("s") || sessionId;
+      if (!turns.length) {
+        onFirstQuestion(q);
+        rememberSession(sid, q);
+      }
+      const id = crypto.randomUUID();
+      setTurns((ts) => [...ts, { id, q, shown: "", target: "", trace: [], sources: [] }]);
+      setBusy(true);
+      const update = (fn: (t: Turn) => Turn) => setTurns((ts) => ts.map((t) => (t.id === id ? fn(t) : t)));
+      try {
+        await socket.current.ask(q, sid, (ev: ChatEvent) => {
+          if (ev.type === "token") update((t) => ({ ...t, target: t.target + ev.content }));
+          else if (ev.type === "agent" || ev.type === "tool") update((t) => ({ ...t, trace: [...t.trace, ev as TraceEvent] }));
+          else if (ev.type === "sources") update((t) => ({ ...t, sources: ev.sources }));
+          else if (ev.type === "replace") update((t) => ({ ...t, target: ev.answer, shown: ev.answer }));
+          else if (ev.type === "done") update((t) => ({ ...t, done: ev, target: ev.answer, sources: ev.sources?.length ? ev.sources : t.sources }));
+          else if (ev.type === "error") update((t) => ({ ...t, error: ev.message }));
+        });
+      } catch (e) {
+        update((t) => ({ ...t, error: (e as Error).message }));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [params, sessionId, turns.length, onFirstQuestion],
+  );
 
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "status") {
-          setStatus(data.message);
-        } else if (data.type === "token") {
-          setStatus("Đang viết câu trả lời...");
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId
-                ? { ...m, content: m.content + data.content, streaming: true }
-                : m,
-            ),
-          );
-        } else if (data.type === "done") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId
-                ? {
-                    ...m,
-                    content: data.answer,
-                    streaming: false,
-                    metadata: data.metadata,
-                  }
-                : m,
-            ),
-          );
-          setStatus("");
-          setLoading(false);
-          ws.onmessage = null;
-        } else if (data.type === "error") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId
-                ? { ...m, content: data.message, streaming: false }
-                : m,
-            ),
-          );
-          setStatus("");
-          setLoading(false);
-          ws.onmessage = null;
-        }
-      };
-      ws.send(JSON.stringify({ query: query.trim(), session_id: sessionId }));
-      return;
+  // question handed over from another page (e.g. the score calculator)
+  const handed = useRef(false);
+  useEffect(() => {
+    const q = (location.state as { q?: string } | null)?.q;
+    if (q && !handed.current) {
+      handed.current = true;
+      navigate(location.pathname, { replace: true, state: null });
+      ask(q);
     }
+  }, [location.state, location.pathname, navigate, ask]);
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim(), session_id: sessionId }),
-      });
-      const data = await res.json();
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? {
-                ...m,
-                content: data.answer,
-                streaming: false,
-                metadata: {
-                  cached: data.cached,
-                  confidence: data.confidence,
-                  sources: data.sources,
-                  timings: data.timings,
-                  guardrail: data.timings?.guardrail,
-                },
-              }
-            : m,
-        ),
-      );
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, content: "Không thể kết nối backend.", streaming: false }
-            : m,
-        ),
-      );
-    } finally {
-      setStatus("");
-      setLoading(false);
-    }
-  }
-
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    submitQuery(input);
-  }
+  const empty = turns.length === 0;
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      {messages.length > 0 && (
-        <div className="px-4 pt-3 max-w-5xl w-full mx-auto flex justify-end">
-          <button
-            type="button"
-            onClick={startNewChat}
-            className="text-sm font-semibold text-slate-600 hover:text-brand-700 px-3 py-1.5 rounded-lg border border-slate-200/80 bg-white/70 backdrop-blur-sm"
-          >
-            Chat mới
-          </button>
+    <LayoutGroup>
+      <div className="flex h-full flex-col">
+        <div className="scrollbar-thin flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {empty ? (
+              <motion.div key="hero" exit={{ opacity: 0, y: -10 }} className="mx-auto flex min-h-full w-full max-w-[720px] flex-col justify-center px-4 pb-24 pt-10 sm:px-6">
+                <Wordmark />
+                <motion.p variants={fadeUp} initial="hidden" animate="show" className="mt-1 text-center text-body-lg text-graphite">
+                  Tư vấn tuyển sinh Trường ĐH Bách khoa – ĐHQG-HCM, trả lời bằng dữ liệu chính thức 2026.
+                </motion.p>
+                <div className="mt-8">
+                  <Composer hero onSubmit={ask} busy={busy} autoFocus />
+                </div>
+                <motion.div variants={stagger(0.05, 0.15)} initial="hidden" animate="show" className="mt-3 flex flex-wrap gap-2">
+                  {[
+                    { label: "Hỏi đáp", icon: Sparkles, active: true, to: "/chat" },
+                    { label: "Tính điểm & chọn ngành", icon: Calculator, to: "/counselor" },
+                    { label: "Giọng nói", icon: Mic, to: "/voice" },
+                  ].map((c) => (
+                    <motion.button
+                      key={c.label}
+                      variants={fadeUp}
+                      onClick={() => c.to !== "/chat" && navigate(c.to)}
+                      className={
+                        c.active
+                          ? "flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-body text-white"
+                          : "flex items-center gap-1.5 rounded-full border border-warm-mist px-3 py-1.5 text-body text-ink hover:border-ash"
+                      }
+                    >
+                      <c.icon size={14} /> {c.label}
+                    </motion.button>
+                  ))}
+                </motion.div>
+                <motion.div variants={stagger(0.06, 0.25)} initial="hidden" animate="show" className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {SUGGESTIONS.map((s) => (
+                    <motion.button
+                      key={s.title}
+                      variants={fadeUp}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() => ask(s.q)}
+                      className="group flex items-start gap-3 rounded-cards bg-soft-paper px-4 py-3 text-left shadow-subtle"
+                    >
+                      <s.icon size={18} className="mt-0.5 shrink-0 text-ink" />
+                      <span>
+                        <span className="block text-body-lg text-ink">{s.title}</span>
+                        <span className="block text-body text-graphite">{s.desc}</span>
+                      </span>
+                      <ArrowRight size={14} className="ml-auto mt-1 shrink-0 text-ash opacity-0 transition-opacity group-hover:opacity-100" />
+                    </motion.button>
+                  ))}
+                </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div key="thread" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto w-full max-w-[900px] px-4 pb-8 pt-8 sm:px-6">
+                {turns.map((t, i) => (
+                  <TurnView key={t.id} turn={t} last={i === turns.length - 1} busy={busy} onAsk={ask} />
+                ))}
+                <div ref={bottom} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        {!empty && (
+          <div className="border-t border-hairline bg-parchment/95 px-4 pb-4 pt-3 sm:px-6">
+            <div className="mx-auto max-w-[900px]">
+              <Composer onSubmit={ask} busy={busy} placeholder="Hỏi tiếp…" autoFocus />
+            </div>
+          </div>
+        )}
+      </div>
+    </LayoutGroup>
+  );
+}
+
+function TurnView({ turn, last, busy, onAsk }: { turn: Turn; last: boolean; busy: boolean; onAsk: (q: string) => void }) {
+  const live = !turn.done && !turn.error && !turn.restored;
+  const streaming = live || turn.shown.length < turn.target.length;
+  const intents = turn.done?.plan?.intents ?? [];
+  const follow = [...new Set(intents.flatMap((i) => FOLLOW_UPS[i] ?? []))].slice(0, 3);
+
+  return (
+    <motion.article initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={spring} className="border-b border-hairline py-6 last:border-0">
+      <h2 className="text-[22px] font-medium leading-snug tracking-tight text-ink">{turn.q}</h2>
+      {!turn.restored && (
+        <div className="mt-4">
+          <AgentTrace events={turn.trace} live={live} />
         </div>
       )}
-      <div className={`flex-1 min-h-0 px-4 py-6 max-w-5xl w-full mx-auto ${
-        messages.length === 0
-          ? "overflow-hidden flex flex-col justify-center"
-          : "overflow-y-auto space-y-4"
-      }`}>
-        {messages.length === 0 && (
-          <div className="relative max-w-4xl mx-auto py-8 w-full flex flex-col justify-center min-h-[500px]">
-            {/* Ambient background glow inside the chat container for extra depth */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-blue-400/5 rounded-full blur-[80px] pointer-events-none" />
-
-            {/* Floating Suggestions - Left Side */}
-            <div className="hidden lg:block absolute left-0 top-12 transform -translate-x-12 max-w-[260px] w-full">
-              <button
-                type="button"
-                onClick={() => submitQuery(SUGGESTIONS[0])}
-                className="group relative flex items-center justify-center p-6 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-md text-center hover:border-brand-500/40 hover:bg-white/35 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer min-h-[90px] w-full shadow-[0_8px_32px_rgba(31,41,55,0.03),inset_0_1px_1px_rgba(255,255,255,0.7)]"
-              >
-                <span className="text-[15px] font-semibold text-slate-700 leading-snug group-hover:text-slate-900">{SUGGESTIONS[0]}</span>
-              </button>
-            </div>
-
-            <div className="hidden lg:block absolute left-0 bottom-12 transform -translate-x-16 max-w-[260px] w-full">
-              <button
-                type="button"
-                onClick={() => submitQuery(SUGGESTIONS[2])}
-                className="group relative flex items-center justify-center p-6 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-md text-center hover:border-brand-500/40 hover:bg-white/35 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer min-h-[90px] w-full shadow-[0_8px_32px_rgba(31,41,55,0.03),inset_0_1px_1px_rgba(255,255,255,0.7)]"
-              >
-                <span className="text-[15px] font-semibold text-slate-700 leading-snug group-hover:text-slate-900">{SUGGESTIONS[2]}</span>
-              </button>
-            </div>
-
-            {/* Floating Suggestions - Right Side */}
-            <div className="hidden lg:block absolute right-0 top-8 transform translate-x-12 max-w-[260px] w-full">
-              <button
-                type="button"
-                onClick={() => submitQuery(SUGGESTIONS[1])}
-                className="group relative flex items-center justify-center p-6 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-md text-center hover:border-brand-500/40 hover:bg-white/35 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer min-h-[90px] w-full shadow-[0_8px_32px_rgba(31,41,55,0.03),inset_0_1px_1px_rgba(255,255,255,0.7)]"
-              >
-                <span className="text-[15px] font-semibold text-slate-700 leading-snug group-hover:text-slate-900">{SUGGESTIONS[1]}</span>
-              </button>
-            </div>
-
-            <div className="hidden lg:block absolute right-0 bottom-8 transform translate-x-16 max-w-[260px] w-full">
-              <button
-                type="button"
-                onClick={() => submitQuery(SUGGESTIONS[3])}
-                className="group relative flex items-center justify-center p-6 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-md text-center hover:border-brand-500/40 hover:bg-white/35 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer min-h-[90px] w-full shadow-[0_8px_32px_rgba(31,41,55,0.03),inset_0_1px_1px_rgba(255,255,255,0.7)]"
-              >
-                <span className="text-[15px] font-semibold text-slate-700 leading-snug group-hover:text-slate-900">{SUGGESTIONS[3]}</span>
-              </button>
-            </div>
-
-            {/* Center Welcome Text */}
-            <div className="text-center relative z-10 px-4 max-w-3xl mx-auto mb-10 lg:mb-0">
-              <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-indigo-600 to-blue-500 mb-6 leading-tight">
-                Xin chào, mình là BKAi
-              </h1>
-              <p className="text-slate-500 font-semibold text-base md:text-lg lg:text-xl max-w-2xl mx-auto leading-relaxed">
-                Cố vấn tuyển sinh HCMUT — hỏi điểm chuẩn, ngành học, học phí; mình nhớ ngữ cảnh trong đoạn chat này
-              </p>
-            </div>
-
-            {/* Grid Fallback for Tablet / Mobile */}
-            <div className="flex lg:hidden flex-col gap-2.5 max-w-md mx-auto w-full px-4 relative z-10">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => submitQuery(s)}
-                  className="flex items-center justify-center px-5 py-4 rounded-2xl border border-white/40 bg-white/20 backdrop-blur-md hover:bg-white/35 hover:border-brand-500/40 hover:text-brand-700 text-sm font-semibold text-slate-700 text-center transition shadow-[0_8px_32px_rgba(31,41,55,0.03),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:shadow-brand-500/5 min-h-[60px]"
-                >
-                  <span className="leading-snug">{s}</span>
-                </button>
-              ))}
-            </div>
+      {turn.sources.length > 0 && (
+        <div className="mt-5">
+          <div className="mb-2 text-body-sm text-graphite">Nguồn</div>
+          <Sources sources={turn.sources} />
+        </div>
+      )}
+      <div className="mt-5">
+        {turn.error ? (
+          <p className="text-body-lg text-graphite">{turn.error}</p>
+        ) : turn.shown ? (
+          <Markdown text={turn.shown} sources={turn.sources} streaming={streaming} />
+        ) : (
+          <div className="space-y-2" aria-label="Đang soạn câu trả lời">
+            <div className="shimmer h-4 w-11/12 rounded-buttons" />
+            <div className="shimmer h-4 w-9/12 rounded-buttons" />
+            <div className="shimmer h-4 w-10/12 rounded-buttons" />
           </div>
         )}
-
-        {messages.map((msg, idx) => {
-          const prevUser =
-            msg.role === "assistant"
-              ? [...messages].slice(0, idx).reverse().find((m) => m.role === "user")
-              : null;
-          return (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] px-4 py-3.5 shadow-sm transition-all duration-300 ${
-                  msg.role === "user"
-                    ? "bg-gradient-to-tr from-brand-600 via-brand-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm"
-                    : "bg-white/80 backdrop-blur-sm border border-slate-200/60 text-slate-800 rounded-2xl rounded-tl-sm"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <div className="prose prose-slate max-w-none text-[15px] leading-relaxed">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content || (msg.streaming ? "..." : "")}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-[15px] leading-relaxed">{msg.content}</p>
-                )}
-
-                {msg.role === "assistant" && msg.metadata && !msg.streaming && (
-                  <div className="mt-4 pt-3.5 border-t border-slate-100 space-y-3">
-                    <div className="flex flex-wrap gap-2 text-[10px] text-slate-400">
-                      {msg.metadata.cached && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-md font-medium">Cache hit</span>}
-                      {typeof msg.metadata.confidence === "number" && (
-                        <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md">
-                          Confidence: {(msg.metadata.confidence * 100).toFixed(0)}%
-                        </span>
-                      )}
-                      {typeof msg.metadata.response_time === "number" && (
-                        <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md">
-                          Time: {msg.metadata.response_time}s
-                        </span>
-                      )}
-                    </div>
-                    {msg.metadata.sources && msg.metadata.sources.length > 0 && (
-                      <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                        <div className="text-[11px] font-bold text-slate-500 mb-1.5 flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                          </svg>
-                          Nguồn tham khảo
-                        </div>
-                        <ul className="text-[11px] text-slate-500 space-y-1">
-                          {msg.metadata.sources.map((s) => (
-                            <li key={s} className="truncate">• {s}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {prevUser && !msg.metadata.guardrail && (
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          type="button"
-                          aria-label="Hữu ích"
-                          onClick={() => sendFeedback(prevUser.content, "like")}
-                          className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-brand-50 hover:text-brand-700 transition flex items-center gap-1"
-                        >
-                          👍 Hữu ích
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Không hữu ích"
-                          onClick={() => sendFeedback(prevUser.content, "dislike")}
-                          className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white hover:bg-brand-50 hover:text-brand-700 transition flex items-center gap-1"
-                        >
-                          👎 Không hữu ích
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        {status && (
-          <div className="text-xs text-brand-600 font-semibold px-2 animate-pulse" aria-live="polite">
-            {status}
-          </div>
-        )}
-        <div ref={bottomRef} />
       </div>
-
-      <form onSubmit={onSubmit} className="border-t border-slate-200/60 p-4 bg-white/40 backdrop-blur-md relative z-20 shrink-0">
-        <div className="max-w-4xl mx-auto relative flex items-center bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-100/50 p-1.5 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/10 transition-all">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, 500))}
-            placeholder="Hỏi về tuyển sinh, điểm chuẩn, học phí..."
-            rows={1}
-            className="flex-1 bg-transparent border-0 px-4 py-3 text-slate-800 placeholder-slate-400 focus:ring-0 focus:outline-none resize-none text-[15px] max-h-32 min-h-[48px]"
-            aria-label="Câu hỏi"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submitQuery(input);
-              }
-            }}
-          />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-semibold text-sm hover:from-brand-700 hover:to-indigo-700 disabled:opacity-40 transition shadow-sm hover:shadow-brand-500/10 cursor-pointer flex items-center justify-center gap-1.5 self-end"
-          >
-            <span>Gửi</span>
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-            </svg>
-          </button>
+      {turn.done && !streaming && (
+        <div className="mt-4">
+          <AnswerMeta done={turn.done} />
         </div>
-        <div className="max-w-4xl mx-auto flex justify-between items-center text-[10px] text-slate-400 mt-2 px-1">
-          <span>BKAi có thể trả lời chưa hoàn toàn chính xác. Hãy kiểm tra thông tin chính thức.</span>
-          <span>{input.length}/500</span>
-        </div>
-      </form>
-    </div>
+      )}
+      {last && turn.done && !busy && follow.length > 0 && !streaming && (
+        <motion.div variants={stagger(0.05, 0.2)} initial="hidden" animate="show" className="mt-6">
+          <div className="mb-2 text-body-sm text-graphite">Câu hỏi liên quan</div>
+          <div className="divide-y divide-hairline border-y border-hairline">
+            {follow.map((f) => (
+              <motion.button key={f} variants={fadeUp} onClick={() => onAsk(f)} className="flex w-full items-center justify-between py-2.5 text-left text-body-lg text-ink hover:text-graphite">
+                {f} <ArrowRight size={14} className="text-ash" />
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </motion.article>
   );
 }

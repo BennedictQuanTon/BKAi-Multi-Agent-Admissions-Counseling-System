@@ -1,0 +1,782 @@
+{
+ "generated_at": "2026-10-05T16:05:22.388972+00:00",
+ "n_cases": 80,
+ "results": [
+  {
+   "config": "minilm     dense",
+   "hit@1": 0.212,
+   "hit@3": 0.362,
+   "hit@5": 0.4,
+   "mrr@10": 0.314,
+   "ndcg@10": 0.365,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.16,
+     "hit@3": 0.3,
+     "hit@5": 0.3,
+     "mrr@10": 0.252,
+     "ndcg@10": 0.294
+    },
+    "major": {
+     "hit@1": 0.3,
+     "hit@3": 0.467,
+     "hit@5": 0.567,
+     "mrr@10": 0.418,
+     "ndcg@10": 0.484
+    }
+   },
+   "latency_ms_p50": 8.8,
+   "latency_ms_p95": 151.2,
+   "misses@5": [
+    "Công thức tính điểm xét tuyển tổng hợp năm 2026",
+    "thí sinh không có điểm ĐGNL thì điểm năng lực tính sao",
+    "khong thi dgnl co xet tuyen duoc khong",
+    "chứng chỉ MOS IC3 có được cộng điểm không",
+    "ngưỡng đảm bảo chất lượng đầu vào xét tuyển tổng hợp",
+    "được đăng ký tối đa bao nhiêu nguyện vọng",
+    "chương trình chuyển tiếp quốc tế tính điểm năng lực bằng phỏng vấn và bài luận",
+    "TNE UTS yêu cầu điểm trung bình lớp 12 bao nhiêu",
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "IELTS 5.5 có vào chương trình tiếng Anh được không",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "xét tuyển thẳng chiếm bao nhiêu phần trăm chỉ tiêu",
+    "năm 2026 trường có bao nhiêu hệ đào tạo",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "học phí trung bình chương trình tiêu chuẩn năm 2026-2027",
+    "học phí chương trình liên kết UTS mỗi học kỳ",
+    "chương trình tài năng xét tuyển khi nào",
+    "chương trình tiên tiến dùng giáo trình của trường nào",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không",
+    "học bổng MEXT bao nhiêu yên một tháng",
+    "hạn đăng ký chương trình chuyển tiếp nhật bản 2026",
+    "khi nào trường công bố kết quả xét tuyển chính thức",
+    "hạn chót xác nhận nhập học trên hệ thống Bộ",
+    "tân sinh viên cần khám sức khỏe không",
+    "lịch kiểm tra anh văn xếp lớp",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không",
+    "số điện thoại văn phòng tư vấn tuyển sinh",
+    "email tư vấn chương trình quốc tế OISP",
+    "ký túc xá bách khoa ở đâu",
+    "bách khoa có mấy cơ sở",
+    "tỷ lệ chương trình đào tạo đạt kiểm định bậc đại học",
+    "ngành kiến trúc có thi năng khiếu không",
+    "tổ hợp xét tuyển có cần ghi trên hệ thống của Bộ không",
+    "điểm UTXT là gì",
+    "tổ hợp xét tuyển ngành Kỹ thuật Hạt nhân hệ học bằng tiếng Anh",
+    "Kỹ thuật Máy tính học bằng tiếng Anh có chuyên ngành gì",
+    "ngành Dệt - May chương trình tiêu chuẩn học những gì, tổ hợp nào",
+    "tổ hợp xét tuyển ngành Công nghệ Sinh học hệ học bằng tiếng Anh",
+    "tổ hợp xét tuyển ngành Kỹ thuật Cơ khí hệ chuyển tiếp quốc tế du học Úc",
+    "ngành Trí tuệ Nhân tạo liên kết UTS học những gì, tổ hợp nào",
+    "ngành Bảo dưỡng Công nghiệp chương trình tiêu chuẩn học những gì, tổ hợp nào",
+    "ngành Xây dựng và Quản lý Dự án Xây dựng chương trình tiêu chuẩn học những gì, tổ hợp nào",
+    "Khoa học Dữ liệu học bằng tiếng Anh có chuyên ngành gì",
+    "tổ hợp xét tuyển ngành Cơ Kỹ thuật hệ định hướng Nhật Bản",
+    "ngành Kỹ thuật Cơ khí chương trình tiêu chuẩn học những gì, tổ hợp nào",
+    "ngành Kiến Trúc chương trình tiêu chuẩn học những gì, tổ hợp nào",
+    "tổ hợp xét tuyển ngành Hoá - Thực phẩm - Sinh học hệ chương trình tiêu chuẩn"
+   ]
+  },
+  {
+   "config": "minilm     hybrid",
+   "hit@1": 0.425,
+   "hit@3": 0.825,
+   "hit@5": 0.9,
+   "mrr@10": 0.641,
+   "ndcg@10": 0.711,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.32,
+     "hit@3": 0.76,
+     "hit@5": 0.84,
+     "mrr@10": 0.562,
+     "ndcg@10": 0.64
+    },
+    "major": {
+     "hit@1": 0.6,
+     "hit@3": 0.933,
+     "hit@5": 1.0,
+     "mrr@10": 0.772,
+     "ndcg@10": 0.83
+    }
+   },
+   "latency_ms_p50": 28.1,
+   "latency_ms_p95": 30.3,
+   "misses@5": [
+    "ngưỡng đảm bảo chất lượng đầu vào xét tuyển tổng hợp",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không",
+    "lịch kiểm tra anh văn xếp lớp",
+    "email tư vấn chương trình quốc tế OISP",
+    "ngành kiến trúc có thi năng khiếu không"
+   ]
+  },
+  {
+   "config": "bge-m3     dense",
+   "hit@1": 0.812,
+   "hit@3": 0.887,
+   "hit@5": 0.912,
+   "mrr@10": 0.859,
+   "ndcg@10": 0.871,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.82,
+     "hit@5": 0.86,
+     "mrr@10": 0.785,
+     "ndcg@10": 0.801
+    },
+    "major": {
+     "hit@1": 0.967,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.983,
+     "ndcg@10": 0.988
+    }
+   },
+   "latency_ms_p50": 21.4,
+   "latency_ms_p95": 101.7,
+   "misses@5": [
+    "khong thi dgnl co xet tuyen duoc khong",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không",
+    "ngành kiến trúc có thi năng khiếu không",
+    "điểm UTXT là gì"
+   ]
+  },
+  {
+   "config": "bge-m3     hybrid",
+   "hit@1": 0.8,
+   "hit@3": 0.938,
+   "hit@5": 0.95,
+   "mrr@10": 0.872,
+   "ndcg@10": 0.885,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.7,
+     "hit@3": 0.9,
+     "hit@5": 0.92,
+     "mrr@10": 0.805,
+     "ndcg@10": 0.824
+    },
+    "major": {
+     "hit@1": 0.967,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.983,
+     "ndcg@10": 0.988
+    }
+   },
+   "latency_ms_p50": 40.8,
+   "latency_ms_p95": 52.8,
+   "misses@5": [
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  dense",
+   "hit@1": 0.725,
+   "hit@3": 0.838,
+   "hit@5": 0.9,
+   "mrr@10": 0.787,
+   "ndcg@10": 0.801,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.66,
+     "hit@3": 0.76,
+     "hit@5": 0.84,
+     "mrr@10": 0.718,
+     "ndcg@10": 0.726
+    },
+    "major": {
+     "hit@1": 0.833,
+     "hit@3": 0.967,
+     "hit@5": 1.0,
+     "mrr@10": 0.901,
+     "ndcg@10": 0.926
+    }
+   },
+   "latency_ms_p50": 21.0,
+   "latency_ms_p95": 26.1,
+   "misses@5": [
+    "Công thức tính điểm xét tuyển tổng hợp năm 2026",
+    "khong thi dgnl co xet tuyen duoc khong",
+    "được đăng ký tối đa bao nhiêu nguyện vọng",
+    "TNE UTS yêu cầu điểm trung bình lớp 12 bao nhiêu",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không",
+    "điểm UTXT là gì"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  sparse",
+   "hit@1": 0.725,
+   "hit@3": 0.912,
+   "hit@5": 0.938,
+   "mrr@10": 0.821,
+   "ndcg@10": 0.843,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.68,
+     "hit@3": 0.86,
+     "hit@5": 0.9,
+     "mrr@10": 0.773,
+     "ndcg@10": 0.793
+    },
+    "major": {
+     "hit@1": 0.8,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.9,
+     "ndcg@10": 0.926
+    }
+   },
+   "latency_ms_p50": 17.6,
+   "latency_ms_p95": 19.4,
+   "misses@5": [
+    "SAT 1400 quy đổi được bao nhiêu điểm năng lực",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid",
+   "hit@1": 0.762,
+   "hit@3": 0.925,
+   "hit@5": 0.95,
+   "mrr@10": 0.839,
+   "ndcg@10": 0.853,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.7,
+     "hit@3": 0.88,
+     "hit@5": 0.92,
+     "mrr@10": 0.789,
+     "ndcg@10": 0.8
+    },
+    "major": {
+     "hit@1": 0.867,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.922,
+     "ndcg@10": 0.942
+    }
+   },
+   "latency_ms_p50": 40.3,
+   "latency_ms_p95": 46.1,
+   "misses@5": [
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không"
+   ]
+  },
+  {
+   "config": "vn-emb-v2  dense",
+   "hit@1": 0.762,
+   "hit@3": 0.912,
+   "hit@5": 0.912,
+   "mrr@10": 0.833,
+   "ndcg@10": 0.848,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.68,
+     "hit@3": 0.86,
+     "hit@5": 0.86,
+     "mrr@10": 0.766,
+     "ndcg@10": 0.781
+    },
+    "major": {
+     "hit@1": 0.9,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.944,
+     "ndcg@10": 0.959
+    }
+   },
+   "latency_ms_p50": 21.3,
+   "latency_ms_p95": 26.8,
+   "misses@5": [
+    "khong thi dgnl co xet tuyen duoc khong",
+    "TNE UTS yêu cầu điểm trung bình lớp 12 bao nhiêu",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "chuyển tiếp nhật bản có cần biết tiếng nhật trước không",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không",
+    "ngành kiến trúc có thi năng khiếu không"
+   ]
+  },
+  {
+   "config": "vn-emb-v2  hybrid",
+   "hit@1": 0.825,
+   "hit@3": 0.938,
+   "hit@5": 0.963,
+   "mrr@10": 0.885,
+   "ndcg@10": 0.887,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.74,
+     "hit@3": 0.9,
+     "hit@5": 0.94,
+     "mrr@10": 0.826,
+     "ndcg@10": 0.827
+    },
+    "major": {
+     "hit@1": 0.967,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.983,
+     "ndcg@10": 0.988
+    }
+   },
+   "latency_ms_p50": 40.5,
+   "latency_ms_p95": 46.8,
+   "misses@5": [
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank bge-reranker-base len512 cand20",
+   "hit@1": 0.85,
+   "hit@3": 0.975,
+   "hit@5": 0.975,
+   "mrr@10": 0.91,
+   "ndcg@10": 0.918,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.82,
+     "hit@3": 0.96,
+     "hit@5": 0.96,
+     "mrr@10": 0.886,
+     "ndcg@10": 0.892
+    },
+    "major": {
+     "hit@1": 0.9,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.95,
+     "ndcg@10": 0.963
+    }
+   },
+   "latency_ms_p50": 550.2,
+   "latency_ms_p95": 667.3,
+   "misses@5": [
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "email tư vấn chương trình quốc tế OISP"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank bge-reranker-base len256 cand20",
+   "hit@1": 0.787,
+   "hit@3": 0.938,
+   "hit@5": 0.938,
+   "mrr@10": 0.858,
+   "ndcg@10": 0.873,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.9,
+     "hit@5": 0.9,
+     "mrr@10": 0.803,
+     "ndcg@10": 0.819
+    },
+    "major": {
+     "hit@1": 0.9,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.95,
+     "ndcg@10": 0.963
+    }
+   },
+   "latency_ms_p50": 320.9,
+   "latency_ms_p95": 344.5,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "lịch kiểm tra anh văn xếp lớp",
+    "email tư vấn chương trình quốc tế OISP"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank bge-reranker-base len256 cand12",
+   "hit@1": 0.812,
+   "hit@3": 0.925,
+   "hit@5": 0.925,
+   "mrr@10": 0.868,
+   "ndcg@10": 0.88,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.88,
+     "hit@5": 0.88,
+     "mrr@10": 0.799,
+     "ndcg@10": 0.815
+    },
+    "major": {
+     "hit@1": 0.967,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.983,
+     "ndcg@10": 0.988
+    }
+   },
+   "latency_ms_p50": 213.1,
+   "latency_ms_p95": 220.0,
+   "misses@5": [
+    "SAT 1400 quy đổi được bao nhiêu điểm năng lực",
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "học sinh giỏi quốc gia môn Tin được tuyển thẳng vào ngành nào",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "lịch kiểm tra anh văn xếp lớp",
+    "email tư vấn chương trình quốc tế OISP"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank bge-reranker-v2-m3 len512 cand20",
+   "hit@1": 0.838,
+   "hit@3": 0.975,
+   "hit@5": 0.988,
+   "mrr@10": 0.907,
+   "ndcg@10": 0.916,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.78,
+     "hit@3": 0.96,
+     "hit@5": 0.98,
+     "mrr@10": 0.872,
+     "ndcg@10": 0.88
+    },
+    "major": {
+     "hit@1": 0.933,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.967,
+     "ndcg@10": 0.975
+    }
+   },
+   "latency_ms_p50": 1539.7,
+   "latency_ms_p95": 1922.8,
+   "misses@5": [
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank bge-reranker-v2-m3 len256 cand20",
+   "hit@1": 0.8,
+   "hit@3": 0.975,
+   "hit@5": 0.975,
+   "mrr@10": 0.879,
+   "ndcg@10": 0.896,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.96,
+     "hit@5": 0.96,
+     "mrr@10": 0.827,
+     "ndcg@10": 0.848
+    },
+    "major": {
+     "hit@1": 0.933,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.967,
+     "ndcg@10": 0.975
+    }
+   },
+   "latency_ms_p50": 895.4,
+   "latency_ms_p95": 948.7,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank bge-reranker-v2-m3 len256 cand12",
+   "hit@1": 0.8,
+   "hit@3": 0.975,
+   "hit@5": 0.975,
+   "mrr@10": 0.881,
+   "ndcg@10": 0.897,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.96,
+     "hit@5": 0.96,
+     "mrr@10": 0.83,
+     "ndcg@10": 0.851
+    },
+    "major": {
+     "hit@1": 0.933,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.967,
+     "ndcg@10": 0.975
+    }
+   },
+   "latency_ms_p50": 572.9,
+   "latency_ms_p95": 582.9,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank Vietnamese_Reranker len512 cand20",
+   "hit@1": 0.787,
+   "hit@3": 0.963,
+   "hit@5": 0.975,
+   "mrr@10": 0.872,
+   "ndcg@10": 0.894,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.78,
+     "hit@3": 0.94,
+     "hit@5": 0.96,
+     "mrr@10": 0.858,
+     "ndcg@10": 0.877
+    },
+    "major": {
+     "hit@1": 0.8,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.894,
+     "ndcg@10": 0.922
+    }
+   },
+   "latency_ms_p50": 1528.1,
+   "latency_ms_p95": 1907.1,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank Vietnamese_Reranker len256 cand20",
+   "hit@1": 0.75,
+   "hit@3": 0.963,
+   "hit@5": 0.963,
+   "mrr@10": 0.851,
+   "ndcg@10": 0.881,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.94,
+     "hit@5": 0.94,
+     "mrr@10": 0.825,
+     "ndcg@10": 0.857
+    },
+    "major": {
+     "hit@1": 0.8,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.894,
+     "ndcg@10": 0.922
+    }
+   },
+   "latency_ms_p50": 898.4,
+   "latency_ms_p95": 939.5,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "hạn đăng ký chương trình chuyển tiếp nhật bản 2026"
+   ]
+  },
+  {
+   "config": "vn-emb-v1  hybrid+rerank Vietnamese_Reranker len256 cand12",
+   "hit@1": 0.75,
+   "hit@3": 0.963,
+   "hit@5": 0.963,
+   "mrr@10": 0.853,
+   "ndcg@10": 0.884,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.72,
+     "hit@3": 0.94,
+     "hit@5": 0.94,
+     "mrr@10": 0.826,
+     "ndcg@10": 0.859
+    },
+    "major": {
+     "hit@1": 0.8,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.9,
+     "ndcg@10": 0.926
+    }
+   },
+   "latency_ms_p50": 575.4,
+   "latency_ms_p95": 590.4,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "hạn đăng ký chương trình chuyển tiếp nhật bản 2026"
+   ]
+  },
+  {
+   "config": "v2 hybrid (no rerank)",
+   "hit@1": 0.825,
+   "hit@3": 0.938,
+   "hit@5": 0.963,
+   "mrr@10": 0.885,
+   "ndcg@10": 0.887,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.74,
+     "hit@3": 0.9,
+     "hit@5": 0.94,
+     "mrr@10": 0.826,
+     "ndcg@10": 0.827
+    },
+    "major": {
+     "hit@1": 0.967,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.983,
+     "ndcg@10": 0.988
+    }
+   },
+   "latency_ms_p50": 40.6,
+   "latency_ms_p95": 57.7,
+   "misses@5": [
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "có IELTS 5.0 thì có phải thi anh văn xếp lớp không"
+   ]
+  },
+  {
+   "config": "v2 +bge-reranker-base len512 cand20",
+   "hit@1": 0.863,
+   "hit@3": 0.95,
+   "hit@5": 0.975,
+   "mrr@10": 0.914,
+   "ndcg@10": 0.92,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.82,
+     "hit@3": 0.92,
+     "hit@5": 0.96,
+     "mrr@10": 0.882,
+     "ndcg@10": 0.886
+    },
+    "major": {
+     "hit@1": 0.933,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.967,
+     "ndcg@10": 0.975
+    }
+   },
+   "latency_ms_p50": 505.4,
+   "latency_ms_p95": 649.8,
+   "misses@5": [
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "email tư vấn chương trình quốc tế OISP"
+   ]
+  },
+  {
+   "config": "v2 +bge-reranker-base len384 cand12",
+   "hit@1": 0.875,
+   "hit@3": 0.95,
+   "hit@5": 0.95,
+   "mrr@10": 0.912,
+   "ndcg@10": 0.915,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.82,
+     "hit@3": 0.92,
+     "hit@5": 0.92,
+     "mrr@10": 0.869,
+     "ndcg@10": 0.871
+    },
+    "major": {
+     "hit@1": 0.967,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.983,
+     "ndcg@10": 0.988
+    }
+   },
+   "latency_ms_p50": 307.2,
+   "latency_ms_p95": 338.1,
+   "misses@5": [
+    "SAT 1400 quy đổi được bao nhiêu điểm năng lực",
+    "tổng chỉ tiêu tuyển sinh 2026",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp",
+    "email tư vấn chương trình quốc tế OISP"
+   ]
+  },
+  {
+   "config": "v2 +bge-reranker-v2-m3 len512 cand20",
+   "hit@1": 0.825,
+   "hit@3": 0.975,
+   "hit@5": 0.988,
+   "mrr@10": 0.901,
+   "ndcg@10": 0.912,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.76,
+     "hit@3": 0.96,
+     "hit@5": 0.98,
+     "mrr@10": 0.862,
+     "ndcg@10": 0.875
+    },
+    "major": {
+     "hit@1": 0.933,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.967,
+     "ndcg@10": 0.975
+    }
+   },
+   "latency_ms_p50": 1430.0,
+   "latency_ms_p95": 1885.1,
+   "misses@5": [
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp"
+   ]
+  },
+  {
+   "config": "v2 +Vietnamese_Reranker len512 cand20",
+   "hit@1": 0.787,
+   "hit@3": 0.963,
+   "hit@5": 0.975,
+   "mrr@10": 0.874,
+   "ndcg@10": 0.892,
+   "by_kind": {
+    "policy": {
+     "hit@1": 0.78,
+     "hit@3": 0.94,
+     "hit@5": 0.96,
+     "mrr@10": 0.862,
+     "ndcg@10": 0.875
+    },
+    "major": {
+     "hit@1": 0.8,
+     "hit@3": 1.0,
+     "hit@5": 1.0,
+     "mrr@10": 0.894,
+     "ndcg@10": 0.922
+    }
+   },
+   "latency_ms_p50": 1431.0,
+   "latency_ms_p95": 1897.7,
+   "misses@5": [
+    "IELTS 6.5 quy đổi được mấy điểm môn tiếng Anh thi THPT",
+    "PFIEV có những chuyên ngành nào và trường đối tác Pháp"
+   ]
+  }
+ ]
+}

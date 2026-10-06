@@ -1,63 +1,106 @@
-import { useEffect } from "react";
-import { Link, Route, Routes, useLocation } from "react-router-dom";
-import { SpotlightNavbar } from "./components/SpotlightNavbar";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { Activity, BarChart3, Calculator, MessageSquare, Mic } from "lucide-react";
+import { lazy, Suspense, useCallback, useState } from "react";
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { BrandMark, Sidebar } from "./components/Sidebar";
+import { api, getSessionId, newSessionId } from "./lib/api";
+import { page } from "./lib/motion";
+import { cn } from "./lib/utils";
 import ChatPage from "./pages/ChatPage";
-import DashboardPage from "./pages/DashboardPage";
-import VoicePage from "./pages/VoicePage";
 
-const navItems = [
-  { label: "Chat", to: "/" },
-  { label: "Voice", to: "/voice" },
-  { label: "Dashboard", to: "/dashboard" },
+const VoicePage = lazy(() => import("./pages/VoicePage"));
+const CounselorPage = lazy(() => import("./pages/CounselorPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const ObservabilityPage = lazy(() => import("./pages/ObservabilityPage"));
+
+const MOBILE_NAV = [
+  { to: "/chat", icon: MessageSquare, label: "Hỏi đáp" },
+  { to: "/voice", icon: Mic, label: "Giọng nói" },
+  { to: "/counselor", icon: Calculator, label: "Tính điểm" },
+  { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
 ];
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [sessionId, setSessionId] = useState(() => getSessionId());
+  const [collapsed, setCollapsed] = useState(false);
+  const [observe, setObserve] = useState(false);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
-  const isChatPage = location.pathname === "/";
+  const newChat = useCallback(() => {
+    api.clearSession(sessionId).catch(() => undefined);
+    setSessionId(newSessionId());
+    navigate("/chat");
+  }, [sessionId, navigate]);
 
   return (
-    <div className={`flex flex-col bg-slate-50/40 relative ${
-      isChatPage ? "h-screen [overflow:clip]" : "min-h-full overflow-x-hidden"
-    }`}>
-      {/* Background ambient glowing blobs (Surreal Blue & Yellow animated blobs) */}
-      <div className="absolute top-0 left-0 w-[55%] aspect-square rounded-full bg-gradient-to-br from-blue-300/20 to-indigo-300/10 blur-[130px] pointer-events-none -z-10 animate-blob-1" />
-      <div className="absolute bottom-0 right-0 w-[55%] aspect-square rounded-full bg-gradient-to-tr from-amber-300/15 to-yellow-250/15 blur-[130px] pointer-events-none -z-10 animate-blob-2" />
-      <div className="absolute top-[15%] right-0 w-[40%] aspect-square rounded-full bg-gradient-to-tr from-yellow-200/10 to-amber-300/10 blur-[110px] pointer-events-none -z-10 animate-blob-3" />
-      <div className="absolute bottom-[15%] left-0 w-[40%] aspect-square rounded-full bg-gradient-to-tr from-blue-300/15 to-cyan-200/10 blur-[110px] pointer-events-none -z-10 animate-blob-1" />
-
-      <header className={`border-b border-slate-200/60 bg-white/70 backdrop-blur-md z-50 ${
-        isChatPage ? "relative" : "sticky top-0"
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-blue-500 shadow-md shadow-brand-500/20 flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0 bg-white/10 opacity-50"></div>
-              <span className="relative font-display font-extrabold text-xl text-white tracking-tighter">
-                B
-              </span>
-              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]" />
-            </div>
-            <span className="font-display font-bold text-xl tracking-tight text-slate-900">
-              BKAi
-            </span>
-          </Link>
-          <SpotlightNavbar items={navItems} />
+    <MotionConfig reducedMotion="user">
+      <div className="flex h-full bg-parchment text-ink">
+        <Sidebar onNewChat={newChat} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex items-center gap-2 border-b border-hairline px-4 py-2.5 md:hidden">
+            <BrandMark />
+            <span className="text-body-lg font-medium">BKAi</span>
+            <button onClick={newChat} className="ml-auto rounded-buttons border border-warm-mist px-2.5 py-1 text-body-sm">Mới</button>
+          </header>
+          <main className="relative min-h-0 flex-1 overflow-hidden">
+            {location.pathname !== "/observability" && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setObserve(true)}
+                title="Observability — theo dõi hệ thống thời gian thực"
+                aria-label="Mở Observability"
+                className="absolute right-4 top-3 z-30 grid h-9 w-9 place-items-center rounded-inputs border border-warm-mist bg-soft-paper text-ink shadow-subtle hover:border-ash"
+              >
+                <Activity size={17} />
+              </motion.button>
+            )}
+            <AnimatePresence mode="wait">
+              <motion.div key={location.pathname + sessionId} variants={page} initial="hidden" animate="show" exit="exit" className="h-full overflow-y-auto scrollbar-thin">
+                <Suspense fallback={<div className="p-8 text-body text-graphite">Đang tải…</div>}>
+                  <Routes location={location}>
+                    <Route path="/chat" element={<ChatPage sessionId={sessionId} onFirstQuestion={() => undefined} />} />
+                    <Route path="/voice" element={<VoicePage />} />
+                    <Route path="/counselor" element={<CounselorPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/observability" element={<ObservabilityPage />} />
+                    <Route path="*" element={<Navigate to="/chat" replace />} />
+                  </Routes>
+                </Suspense>
+              </motion.div>
+            </AnimatePresence>
+          </main>
+          <nav className="flex border-t border-hairline md:hidden">
+            {MOBILE_NAV.map(({ to, icon: Icon, label }) => (
+              <NavLink key={to} to={to} className={({ isActive }) => cn("flex flex-1 flex-col items-center gap-0.5 py-2 text-caption", isActive ? "text-brand" : "text-graphite")}>
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-      </header>
-      <main className={`flex-1 relative z-10 min-h-0 flex flex-col overflow-hidden ${
-        isChatPage ? "" : "overflow-visible"
-      }`}>
-        <Routes>
-          <Route path="/" element={<ChatPage />} />
-          <Route path="/voice" element={<VoicePage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-        </Routes>
-      </main>
-    </div>
+      </div>
+      <AnimatePresence>
+        {observe && (
+          <motion.div className="fixed inset-0 z-40 bg-ink/25 p-2 sm:p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setObserve(false)}>
+            <motion.div
+              role="dialog"
+              aria-label="Observability"
+              initial={{ opacity: 0, y: 16, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.985 }}
+              transition={{ type: "spring", stiffness: 300, damping: 32 }}
+              onClick={(e) => e.stopPropagation()}
+              className="scrollbar-thin h-full overflow-y-auto rounded-cards border border-hairline bg-parchment"
+            >
+              <Suspense fallback={<div className="p-8 text-body text-graphite">Đang tải…</div>}>
+                <ObservabilityPage onClose={() => setObserve(false)} />
+              </Suspense>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </MotionConfig>
   );
 }

@@ -1,0 +1,63 @@
+1
+00:00:01,800 --> 00:00:04,493
+Choosing a university is a big decision.
+
+2
+00:00:04,693 --> 00:00:06,323
+And the numbers are everywhere.
+
+3
+00:00:06,623 --> 00:00:11,611
+Seventy-four admission codes. Nine programs. Cut-offs that change every year.
+
+4
+00:00:12,661 --> 00:00:15,476
+So I built a counselor that knows every one of them.
+
+5
+00:00:15,526 --> 00:00:16,975
+Meet BKAi!
+
+6
+00:00:18,425 --> 00:00:21,790
+Ask anything, in Vietnamese, the way you'd ask a friend.
+
+7
+00:00:23,040 --> 00:00:26,745
+A team of AI agents finds the facts, in about two seconds.
+
+8
+00:00:27,995 --> 00:00:31,536
+Every number comes with its source, and is checked before you see it.
+
+9
+00:00:32,886 --> 00:00:35,659
+Rather talk? Just speak. You can even interrupt!
+
+10
+00:00:36,909 --> 00:00:40,260
+It remembers your scores, and suggests majors that fit you.
+
+11
+00:00:41,510 --> 00:00:44,302
+And every answer can be traced, step by step.
+
+12
+00:00:45,652 --> 00:00:47,411
+Eight out of eight real cases.
+
+13
+00:00:47,561 --> 00:00:50,706
+Two hundred out of two hundred numbers, exactly right.
+
+14
+00:00:50,856 --> 00:00:52,821
+Fifteen times faster than before.
+
+15
+00:00:53,871 --> 00:00:55,093
+BKAi.
+
+16
+00:00:55,343 --> 00:00:56,965
+Every number has a source.

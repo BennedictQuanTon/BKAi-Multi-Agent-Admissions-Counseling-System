@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<style>.code{font:12.5px/1.55 ui-monospace,Menlo,monospace;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;white-space:pre;margin-top:8px}
+.code b{color:#0f766e;font-weight:600}.code i{color:#7c3aed;font-style:normal}</style>
+</head><body>
+<div id="canvas" style="width:1600px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">Contextual Parent/Child Chunking</h1>
+  <p class="sub">Small children are searched, whole sections are read. Every child carries “title › section” so a lone table row still knows what it belongs to.</p>
+
+  <div class="row" style="gap:64px; align-items:stretch">
+    <div class="box c-blue" id="doc" style="width:440px; flex-direction:column; align-items:stretch">
+      <div class="t"><i data-lucide="file-text" style="width:20px;height:20px;vertical-align:-4px"></i> 1 · Curated Markdown + front-matter</div>
+<div class="code">---
+id: <b>"official/xet-tuyen-tong-hop-2026"</b>
+title: "Phương thức Xét tuyển Tổng hợp 2026"
+topic: "xet_tuyen_tong_hop"   year: 2026
+source_type: <b>"official"</b>
+source_url: "https://hcmut.edu.vn/…"
+---
+# Phương thức Xét tuyển Tổng hợp 2026
+CÔNG THỨC VÀ THANG ĐIỂM XÉT TUYỂN   ← caps heading
+**Điểm học lực(1):** …              ← bold heading
+| IELTS | TOEFL iBT | Điểm CCTA |   ← table block</div>
+    </div>
+
+    <div class="col" style="gap:18px; flex:1">
+      <div class="box c-orange" id="sec"><div class="ic"><i data-lucide="heading"></i></div><div><div class="t">2 · Section detection</div><div class="d">Markdown #/## headings + the official site's <b>bold</b> and <b>ALL-CAPS</b> pseudo-headings (formula lines excluded: no “=”, ≤ 90 chars). Sections &lt; 240 chars are glued to the next one.</div></div></div>
+      <div class="box c-orange" id="blocks"><div class="ic"><i data-lucide="blocks"></i></div><div><div class="t">3 · Blocks → children (≤ 900 chars)</div><div class="d">paragraphs and lists packed greedily · <b>tables never split mid-row</b>; oversized tables split by rows with the header repeated · tail &lt; 120 chars merged back</div></div></div>
+      <div class="box c-orange" id="parent"><div class="ic"><i data-lucide="layers"></i></div><div><div class="t">4 · Parent text</div><div class="d">whole section when ≤ 2,400 chars, otherwise a neighbour window (prev · self · next) — what the LLM actually reads</div></div></div>
+    </div>
+
+    <div class="box c-green" id="point" style="width:430px; flex-direction:column; align-items:stretch">
+      <div class="t"><i data-lucide="box" style="width:20px;height:20px;vertical-align:-4px"></i> 5 · Qdrant point</div>
+<div class="code">id: uuid5(doc_id#n)        <i># idempotent re-ingest</i>
+vector.dense:  1024-d  ← embed_text
+vector.bm25:   sparse  ← embed_text
+payload:
+  doc_id · title · section
+  <b>text</b>         ← child (search)
+  <b>parent_text</b>  ← section (read)
+  source_type · source_url · year
+  program_id · major_codes
+  kb_version
+
+<i>embed_text =</i>
+"Phương thức Xét tuyển Tổng hợp 2026
+ › CÔNG THỨC VÀ THANG ĐIỂM XÉT TUYỂN
+ [Điểm học lực] = [Điểm năng lực] × 70% …"</div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:16px; margin-top:36px">
+    <div class="box c-teal" style="flex:1"><div class="ic"><i data-lucide="chart-no-axes-column"></i></div><div><div class="t">Corpus</div><div class="d">107 documents → 340 chunks · avg 575 chars · 211 official · 74 one-chunk major cards · 55 legacy</div></div></div>
+    <div class="box c-purple" style="flex:1"><div class="ic"><i data-lucide="search-check"></i></div><div><div class="t">Retrieval-time diversity</div><div class="d">one child per parent section in the final top-k, so 5 hits = 5 different contexts</div></div></div>
+    <div class="box c-blue" style="flex:1"><div class="ic"><i data-lucide="image"></i></div><div><div class="t">Image-only content</div><div class="d">formula images on the official page are transcribed by hand and injected with provenance (asset sha in the snapshot)</div></div></div>
+  </div>
+  <div id="leg"></div>
+</div>
+<script>
+ready(() => {
+  document.getElementById("leg").outerHTML = legend([["blue","Source"],["orange","Chunking steps"],["green","Indexed point"]]);
+  hwire("doc","sec",0.5,{color:"blue"}); hwire("doc","blocks",0.5,{color:"blue"}); hwire("doc","parent",0.5,{color:"blue"});
+  hwire("sec","point",0.5,{color:"orange"}); hwire("blocks","point",0.5,{color:"orange"}); hwire("parent","point",0.5,{color:"orange"});
+});
+</script>
+</body></html>

@@ -1,55 +1,48 @@
-# ===== Core Framework =====
-fastapi>=0.115.0
-uvicorn[standard]>=0.34.0
-python-dotenv>=1.0.0
-pydantic>=2.10.0
-pydantic-settings>=2.7.0
+# BKAi v5 — backend dependencies (tested on Python 3.12–3.14, macOS arm64 / Linux x86_64)
 
-# ===== LLM & Agents =====
-langchain>=0.3.0
-langchain-core>=0.3.0
-langchain-community>=0.3.0
-langchain-google-genai>=2.0.0
-langgraph>=0.3.0
+# ── API ──
+fastapi>=0.139
+uvicorn[standard]>=0.50
+pydantic>=2.13
+pydantic-settings>=2.14
+python-dotenv>=1.2
+python-multipart>=0.0.32
+websockets>=15.0
+httpx>=0.28
+structlog>=26.1
 
-# ===== Vector Store & Embeddings =====
-chromadb>=0.6.0
-sentence-transformers>=4.0.0
-FlagEmbedding>=1.2.0
+# ── Agents / LLM ──
+langgraph>=1.2
+langchain-core>=1.4
+langchain-google-genai>=4.2
+google-genai>=2.10
+mcp>=2.3
 
-# ===== Search & Retrieval =====
-rank-bm25>=0.2.2
-pyvi>=0.1.1
+# ── Retrieval ──
+qdrant-client>=1.18
+sentence-transformers>=5.6
+transformers>=4.57,<5          # kokoro-vietnamese requires transformers<5
+torch>=2.12
+numpy>=2.0
 
-# ===== Cache & Storage =====
-redis>=5.0.0
+# ── Memory / cache / telemetry ──
+redis>=8.0
 
-# ===== Web & HTTP =====
-httpx>=0.28.0
-beautifulsoup4>=4.12.0
-websockets>=14.0
-python-multipart>=0.0.12
-livekit-api>=1.0.0
+# ── Datahub (crawl → parse) ──
+playwright>=1.63               # then: python -m playwright install chromium
+beautifulsoup4>=4.15
+markdownify>=1.2
 
-# ===== Text Processing =====
-markdown>=3.7
-tiktoken>=0.9.0
+# ── Voice ──
+kokoro-vietnamese @ git+https://github.com/iamdinhthuan/Kokoro-Vietnamese.git
+soundfile>=0.13
+onnxruntime>=1.27
+edge-tts>=7.2
+av>=14
+faster-whisper>=1.2
+livekit-api>=1.2
+livekit-agents[assemblyai,deepgram,silero]~=1.8.4
 
-# ===== Scientific =====
-numpy>=2.0.0
-
-# ===== Logging =====
-structlog>=24.0.0
-
-# ===== Audio & Voice =====
-faster-whisper>=1.0.0
-edge-tts>=7.0.0
-livekit>=1.0.0
-livekit-agents[silero,deepgram]>=1.5.0
-livekit-plugins-deepgram>=1.0.0
-av>=12.0.0
-
-# ===== Evaluation =====
-ragas>=0.2.0
-pypdf>=5.0.0
-python-docx>=1.1.0
+# ── Tests ──
+pytest>=9
+pytest-asyncio>=1.4

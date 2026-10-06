@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<style>.step{width:250px}
+table.tb{border-collapse:collapse;font-size:13.5px;width:100%}
+table.tb td{border-bottom:1px solid #e2e8f0;padding:5px 6px;color:#475569}
+table.tb td:first-child{font-family:ui-monospace,Menlo,monospace;color:#0f172a;font-size:13px}
+table.tb td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+pre.tree{margin:0;font:13px/1.55 ui-monospace,Menlo,monospace;color:#334155}</style>
+</head><body>
+<div id="canvas" style="width:1600px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">Datahub & Ingestion Pipeline</h1>
+  <p class="sub">Official pages → reviewable curated data → a validation gate → typed facts (SQL) + contextual chunks (Qdrant).<br><span class="mono">python -m datahub all</span> &nbsp;·&nbsp; <span class="mono">python ingest.py</span></p>
+
+  <div class="row" style="gap:62px; justify-content:center">
+    <div class="box vert c-blue step" id="crawl"><div class="ic"><i data-lucide="globe"></i></div><div class="t">1 · Crawl</div><div class="d" style="text-align:center">16 official hcmut.edu.vn pages<br>JS SPA → headless Chrome<br>html · text · tables.json · sha256</div><div class="pills"><span class="pill p-blue">snapshot 2026-10-05</span></div></div>
+    <div class="box vert c-orange step" id="parse"><div class="ic"><i data-lucide="table-properties"></i></div><div class="t">2 · Parse</div><div class="d" style="text-align:center">rowspan/colspan grid expansion<br>wide table → long format<br>formula images transcribed</div><div class="pills"><span class="pill p-orange">HTML → Markdown</span></div></div>
+    <div class="box vert c-red step" id="validate"><div class="ic"><i data-lucide="shield-check"></i></div><div class="t">3 · Validate (gate)</div><div class="d" style="text-align:center">unique keys · 40 ≤ score ≤ 100<br>Σ quota 2026 = 5,685 ✓ official<br>2024–25 cross-check 67/67 ✓</div><div class="pills"><span class="pill p-red">errors block build</span></div></div>
+    <div class="box vert c-green step" id="build"><div class="ic"><i data-lucide="database"></i></div><div class="t">4 · Build</div><div class="d" style="text-align:center">facts.sqlite (typed, indexed)<br>atomic swap · manifest.json<br>kb_version = content hash</div><div class="pills"><span class="pill p-green">invalidates cache</span></div></div>
+  </div>
+
+  <div class="row" style="gap:62px; justify-content:center; margin-top:60px">
+    <div class="box vert c-purple step" id="index"><div class="ic"><i data-lucide="boxes"></i></div><div class="t">8 · Index</div><div class="d" style="text-align:center">Qdrant collection · 340 points<br>named vectors: dense + bm25<br>payload filters & indexes</div></div>
+    <div class="box vert c-purple step" id="embed"><div class="ic"><i data-lucide="brain-circuit"></i></div><div class="t">7 · Embed</div><div class="d" style="text-align:center">Vietnamese_Embedding_v2<br>1024-d · normalised<br>BM25 TF weights (IDF in Qdrant)</div></div>
+    <div class="box vert c-teal step" id="chunk"><div class="ic"><i data-lucide="scissors"></i></div><div class="t">6 · Chunk</div><div class="d" style="text-align:center">structure-aware parent/child<br>contextual header per chunk<br>tables split by rows + header</div></div>
+    <div class="box vert c-teal step" id="docs"><div class="ic"><i data-lucide="files"></i></div><div class="t">5 · Curated documents</div><div class="d" style="text-align:center">107 Markdown docs + front-matter<br>15 official · 74 major cards<br>18 evergreen legacy sections</div></div>
+  </div>
+
+  <div class="row" style="gap:22px; margin-top:42px; align-items:stretch">
+    <div class="panel c-green" style="flex:1.1">
+      <div class="ph"><i data-lucide="table-2"></i>11 fact tables (facts.sqlite)</div>
+      <table class="tb">
+        <tr><td>programs</td><td>9 hệ đào tạo</td><td>9</td></tr>
+        <tr><td>majors</td><td>admission code × program</td><td>74</td></tr>
+        <tr><td>admission_scores</td><td>year × major × TH/UTXT · 2023–26</td><td>302</td></tr>
+        <tr><td>quotas</td><td>2026 · scope major / group</td><td>73</td></tr>
+        <tr><td>subject_combinations</td><td>tổ hợp per major</td><td>100</td></tr>
+        <tr><td>partner_universities</td><td>Úc · NZ · Mỹ · Nhật</td><td>39</td></tr>
+        <tr><td>tuition</td><td>VND/year · 2024-25 → 2026-27</td><td>9</td></tr>
+        <tr><td>english_conversion</td><td>IELTS/TOEFL/TOEIC → THPT</td><td>5</td></tr>
+        <tr><td>admission_timeline</td><td>key 2026 dates</td><td>6</td></tr>
+        <tr><td>accreditation</td><td>legacy · provenance-tagged</td><td>3</td></tr>
+        <tr><td>aliases</td><td>KHMT · CLC · UTS · no-diacritics</td><td>275</td></tr>
+      </table>
+    </div>
+    <div class="panel c-slate" style="flex:0.9">
+      <div class="ph"><i data-lucide="folder-tree"></i>Data layout (before ingest)</div>
+<pre class="tree">data/
+├── sources/2026-10-05/   raw snapshot
+│   ├── *.html · *.txt · *.tables.json
+│   ├── assets/ (formula images)
+│   └── manifest.json  (url · sha256)
+├── curated/              human-reviewable
+│   ├── structured/*.csv  11 tables
+│   └── documents/
+│       ├── official/  15
+│       ├── majors/    74
+│       └── legacy/    18
+├── build/
+│   ├── facts.sqlite · manifest.json
+│   ├── validation_report.json
+│   └── qdrant/ (embedded mode)
+└── legacy/  v4 files (provenance)</pre>
+    </div>
+    <div class="panel c-orange" style="flex:1">
+      <div class="ph"><i data-lucide="git-compare"></i>Why reorganise (v4 → v5)</div>
+      <ul class="bul" style="font-size:14.5px">
+        <li><b>Numbers moved to SQL</b> — wide CSV rows with 5 score columns made the LLM pick the wrong year (v4 C2 bug).</li>
+        <li><b>One fact, one source</b> — tables duplicated in tonghop.md were dropped.</li>
+        <li><b>Outdated policy removed</b> — v4 said “IELTS ≥ 5.0 quy đổi”; 2026 rule is ≥ 6.0.</li>
+        <li><b>2026 cut-offs added</b> — published 09/08/2026, missing in v4.</li>
+        <li><b>Provenance on every row</b> — source_url, fetched_at, legacy flag.</li>
+      </ul>
+    </div>
+  </div>
+  <div id="leg"></div>
+</div>
+<script>
+ready(() => {
+  document.getElementById("leg").outerHTML = legend([["blue","Acquire"],["orange","Transform"],["red","Quality gate"],["green","Structured facts"],["teal","Documents"],["purple","Vector index"]]);
+  wire("crawl","parse",{color:"blue"}); wire("parse","validate",{color:"orange"}); wire("validate","build",{color:"red",label:"pass"});
+  wire("parse","docs",{from:"b",to:"t",color:"teal",label:"markdown + cards"});
+  wire("docs","chunk",{from:"l",to:"r",color:"teal"}); wire("chunk","embed",{from:"l",to:"r",color:"purple"}); wire("embed","index",{from:"l",to:"r",color:"purple"});
+});
+</script>
+</body></html>
