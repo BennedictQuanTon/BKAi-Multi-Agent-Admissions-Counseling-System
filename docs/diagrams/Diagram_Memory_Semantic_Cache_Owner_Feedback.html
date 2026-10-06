@@ -14,9 +14,10 @@
     <div class="panel c-green" id="mem" style="flex:1">
       <div class="ph"><i data-lucide="brain"></i>Conversation memory (Redis)</div>
       <div class="col" style="gap:12px">
-        <div class="box c-green"><div class="ic"><i data-lucide="messages-square"></i></div><div><div class="t">bkai:sess:&lt;id&gt;:hist</div><div class="d">last 12 turns · 24 h TTL · shared by all API workers · in-process fallback when Redis is down</div></div></div>
+        <div class="box c-green"><div class="ic"><i data-lucide="messages-square"></i></div><div><div class="t">bkai:sess:&lt;id&gt;:hist</div><div class="d">last 12 turns · 7-day TTL · shared by all API workers · in-process fallback when Redis is down</div></div></div>
         <div class="box c-green"><div class="ic"><i data-lucide="id-card"></i></div><div><div class="t">bkai:sess:&lt;id&gt;:profile</div><div class="d">StudentProfile patched by the Supervisor: composite score · THPT / học bạ / ĐGNL · interests · program · budget</div></div></div>
         <div class="box c-green"><div class="ic"><i data-lucide="rotate-ccw"></i></div><div><div class="t">“Cuộc trò chuyện mới”</div><div class="d">POST /api/session/clear · no user database, no PII beyond the session</div></div></div>
+        <div class="box c-green"><div class="ic"><i data-lucide="hard-drive"></i></div><div><div class="t">Device memory (browser)</div><div class="d">anonymous device id → session id · recent chats + transcripts in localStorage · “Xoá dữ liệu trên máy này” wipes both · no accounts</div></div></div>
       </div>
     </div>
 
@@ -27,7 +28,7 @@
         <div class="box c-red"><span class="num n-red">1</span><div><div class="t">status = approved</div><div class="d">only answers an owner marked “Đúng” — hits never self-approve (v4 did)</div></div></div>
         <div class="box c-red"><span class="num n-red">2</span><div><div class="t">kb_version unchanged</div><div class="d">content hash of the curated data — re-ingest invalidates everything</div></div></div>
         <div class="box c-red"><span class="num n-red">3</span><div><div class="t">entity_key identical</div><div class="d">majors · programs · years · methods → “KTMT 2025” never gets the “KHMT 2025” answer</div></div></div>
-        <div class="box c-red"><span class="num n-red">4</span><div><div class="t">cosine ≥ 0.90 · cold session</div><div class="d">paraphrases hit (~30 ms) · multi-turn questions always run the graph</div></div></div>
+        <div class="box c-red"><span class="num n-red">4</span><div><div class="t">cosine ≥ 0.90 · cold session</div><div class="d">paraphrases hit (p50 60 ms) · multi-turn questions always run the graph</div></div></div>
       </div>
     </div>
 
@@ -43,7 +44,7 @@
 
   <div class="row" style="gap:16px; margin-top:34px">
     <div class="box c-red" style="flex:1"><div class="ic"><i data-lucide="flask-conical"></i></div><div><div class="t">Collision test (measured)</div><div class="d">approved “Điểm chuẩn KHMT 2025” → exact repeat <b>hit 30 ms</b> · paraphrase <b>hit 29 ms</b> · KTMT 2025 <b>miss</b> → graph · KHMT 2026 <b>miss</b> → graph</div></div></div>
-    <div class="box c-red" style="flex:1"><div class="ic"><i data-lucide="users"></i></div><div><div class="t">Under load (measured)</div><div class="d">20 concurrent cached requests: 20/20 hit · p50 318 ms · p95 543 ms client-side incl. WebSocket handshake</div></div></div>
+    <div class="box c-red" style="flex:1"><div class="ic"><i data-lucide="users"></i></div><div><div class="t">Under load (measured)</div><div class="d">20 concurrent cached requests: 20/20 hit · p50 344 ms · p95 572 ms client-side incl. WebSocket handshake</div></div></div>
   </div>
   <div id="leg"></div>
 </div>

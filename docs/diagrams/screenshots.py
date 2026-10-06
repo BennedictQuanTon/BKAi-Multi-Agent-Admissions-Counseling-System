@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from optimize import optimize
 from playwright.async_api import async_playwright
 
 OUT = Path(__file__).resolve().parent.parent / "image"
@@ -72,13 +73,15 @@ async def main() -> None:
           (rows.find((r) => r.textContent.includes('80 điểm')) || rows[0]).click();
         }""")
         await obs.wait_for_timeout(2500)
-        await obs.screenshot(path=OUT / "UI_Observability_Query_Trace.png", clip={"x": 600, "y": 0, "width": 1000, "height": 2350})
+        await obs.screenshot(path=OUT / "UI_Observability_Query_Trace.png", clip={"x": 600, "y": 0, "width": 1000, "height": 1740})
 
         mob = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
         await mob.goto(f"{URL}/chat", wait_until="networkidle")
         await mob.wait_for_timeout(1200)
         await mob.screenshot(path=OUT / "UI_Mobile.png")
         await b.close()
+        for shot in sorted(OUT.glob("UI_*.png")):
+            optimize(shot)
         print("✓ screenshots →", OUT)
 
 

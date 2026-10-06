@@ -1,4 +1,4 @@
-"""Render every docs/diagrams/*.html to docs/image/<name>.png (2× scale).
+"""Render every docs/diagrams/*.html to docs/image/<name>.png (2× scale, then shrunk by optimize.py).
 
     cd backend && .venv/bin/python ../docs/diagrams/render.py [name ...]
 """
@@ -9,6 +9,7 @@ import asyncio
 import sys
 from pathlib import Path
 
+from optimize import optimize
 from playwright.async_api import async_playwright
 
 HERE = Path(__file__).resolve().parent
@@ -24,6 +25,7 @@ async def main(names: list[str]) -> None:
             await page.goto(f.as_uri(), wait_until="networkidle")
             await page.wait_for_selector("body[data-ready='1']", timeout=30_000)
             await page.locator("#canvas").screenshot(path=str(OUT / f"{f.stem}.png"))
+            optimize(OUT / f"{f.stem}.png")
             print("✓", f.stem)
         await browser.close()
 
