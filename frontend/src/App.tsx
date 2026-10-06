@@ -1,7 +1,7 @@
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { Activity, BarChart3, Calculator, MessageSquare, Mic } from "lucide-react";
 import { lazy, Suspense, useCallback, useState } from "react";
-import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { BrandMark, Sidebar } from "./components/Sidebar";
 import { api, getSessionId, newSessionId } from "./lib/api";
 import { page } from "./lib/motion";
@@ -14,7 +14,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const ObservabilityPage = lazy(() => import("./pages/ObservabilityPage"));
 
 const MOBILE_NAV = [
-  { to: "/", icon: MessageSquare, label: "Hỏi đáp" },
+  { to: "/chat", icon: MessageSquare, label: "Hỏi đáp" },
   { to: "/voice", icon: Mic, label: "Giọng nói" },
   { to: "/counselor", icon: Calculator, label: "Tính điểm" },
   { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
@@ -30,7 +30,7 @@ export default function App() {
   const newChat = useCallback(() => {
     api.clearSession(sessionId).catch(() => undefined);
     setSessionId(newSessionId());
-    navigate("/");
+    navigate("/chat");
   }, [sessionId, navigate]);
 
   return (
@@ -60,11 +60,12 @@ export default function App() {
               <motion.div key={location.pathname + sessionId} variants={page} initial="hidden" animate="show" exit="exit" className="h-full overflow-y-auto scrollbar-thin">
                 <Suspense fallback={<div className="p-8 text-body text-graphite">Đang tải…</div>}>
                   <Routes location={location}>
-                    <Route path="/" element={<ChatPage sessionId={sessionId} onFirstQuestion={() => undefined} />} />
+                    <Route path="/chat" element={<ChatPage sessionId={sessionId} onFirstQuestion={() => undefined} />} />
                     <Route path="/voice" element={<VoicePage />} />
                     <Route path="/counselor" element={<CounselorPage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/observability" element={<ObservabilityPage />} />
+                    <Route path="*" element={<Navigate to="/chat" replace />} />
                   </Routes>
                 </Suspense>
               </motion.div>
@@ -72,7 +73,7 @@ export default function App() {
           </main>
           <nav className="flex border-t border-hairline md:hidden">
             {MOBILE_NAV.map(({ to, icon: Icon, label }) => (
-              <NavLink key={to} to={to} className={({ isActive }) => cn("flex flex-1 flex-col items-center gap-0.5 py-2 text-caption", isActive ? "text-deep-teal" : "text-graphite")}>
+              <NavLink key={to} to={to} className={({ isActive }) => cn("flex flex-1 flex-col items-center gap-0.5 py-2 text-caption", isActive ? "text-brand" : "text-graphite")}>
                 <Icon size={18} />
                 {label}
               </NavLink>

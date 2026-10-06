@@ -3,11 +3,38 @@
 Target: a real pilot with prospective students (hundreds of users/day, bursts during cut-off week), one VM,
 managed TLS, no Kubernetes needed. Everything below is implemented in the repo unless marked *(ops)*.
 
+## 0 · Pilot deploy, step by step (≈ 10 users/day)
+
+A pilot of about 10 students a day asking a few questions each comes to 30–100 questions/day. One small VM is enough:
+- 4 vCPU / 8 GB RAM, 30 GB disk. The embedding, reranker and Kokoro models run on CPU.
+- The free Gemini tier covers it: the pool allows about 28 requests/minute across two models, and each answer uses 1.01 LLM calls on average.
+
+| # | Do | Check |
+|---|---|---|
+| 1 | Create the VM (Ubuntu 24.04) and point an `A` record (e.g. `bkai.example.com`) at its IP. Open only ports 22, 80 and 443 | `dig +short bkai.example.com` returns the VM IP |
+| 2 | Install Docker Engine and the compose plugin; `git clone` the repo | `docker compose version` |
+| 3 | On your laptop: `cd backend && python -m datahub all`. The crawler needs Chrome. Then `rsync -a backend/data/ vm:~/bkai2/backend/data/` | `backend/data/build/facts.sqlite` exists on the VM |
+| 4 | `cp backend/.env.example backend/.env` and set `GOOGLE_API_KEY`, `ASSEMBLYAI_API_KEY` (optional), `ADMIN_TOKEN` (long random string) and `APP_ENV=production`. In the repo-root `.env`, set `BKAI_DOMAIN` and `QDRANT_API_KEY` | `grep -c = backend/.env` |
+| 5 | `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` | `docker compose ps`: all healthy. The first boot downloads models (~3 GB) into the `hf_models` volume |
+| 6 | Index the documents into the Qdrant server: `docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend python ingest.py` | it prints `340 points` |
+| 7 | Smoke test from anywhere | `curl https://$BKAI_DOMAIN/api/health` → `"status":"ok"`; open `/` → **Try it** → ask a question; try voice on a phone |
+| 8 | Owner tools | open `/dashboard` and paste `ADMIN_TOKEN` when asked; Observability uses the same token |
+
+**What a visitor gets, with no account:**
+- **On the device:** a random session id, the list of recent chats and their transcripts, all in `localStorage`. Closing the tab or coming back tomorrow resumes the same conversation.
+- **On the server:** Redis keeps the conversation memory and the student profile (scores, interests) for 7 days, keyed only by that random id.
+- **Shared computers:** **Xoá dữ liệu trên máy này** in the sidebar clears both. Invalid or placeholder session ids (`"default"` …) are replaced server-side, so two users can never share a memory.
+
+**Costs at this scale:**
+- VM: about US$15–40/month.
+- Gemini: $0 on the free tier.
+- AssemblyAI: billed per streamed second. Voice sessions are capped at 10 minutes.
+
 ## 1 · Topology
 
 ```
 Internet ──► Caddy :443 (auto-HTTPS, HSTS, CSP, 64 KB body cap, JSON access log)
-               ├── /            → frontend (nginx, static SPA)
+               ├── /            → frontend (nginx, static SPA: landing at /, app at /chat)
                ├── /api/*, /ws/* → backend (FastAPI, 1 process, uvicorn) ──► Gemini API (egress only)
                └── /mcp*        → 404 (MCP is reached over SSH tunnel only)
 internal network: backend ↔ redis (AOF, 256 MB LRU) · backend ↔ qdrant (API key) · HF model cache volume
@@ -24,7 +51,7 @@ internal network: backend ↔ redis (AOF, 256 MB LRU) · backend ↔ qdrant (API
 | Risk | Control in BKAi v5 | Where |
 |---|---|---|
 | Prompt injection (direct & indirect) | rule guard rejects injection phrasing (<1 ms); synthesizer prompt states EVIDENCE and the question are **data, not instructions**; tools are read-only, so a fooled model cannot act | `services/guardrails.py`, `config/prompts.py` |
-| Sensitive information disclosure | CCCD / phone / email **redacted before** the LLM, Redis memory, telemetry and logs; no user accounts; sessions expire after 24 h; telemetry capped at 500 records | `services/pii.py`, `memory/session_store.py` |
+| Sensitive information disclosure | CCCD / phone / email **redacted before** the LLM, Redis memory, telemetry and logs; no user accounts; anonymous sessions expire after 7 days; ids are validated and placeholders rejected; telemetry capped at 500 records | `services/pii.py`, `memory/session_store.py` |
 | Excessive agency | agents only call deterministic, read-only tools (SQL SELECT, search, calculators); no write tools exist | `tools/admissions.py` |
 | Misinformation | numbers only from the typed facts DB; **deterministic verifier** checks every number in the answer against evidence and rewrites once; unanswerable years are stated as such | `agents/data_agent.py`, `agents/verifier.py` |
 | Unbounded consumption | per-IP quotas (20/min, 300/day in prod), ≤ 6 WebSockets per IP, 500-char input cap, 64 KB body cap, voice sessions capped at 10 min (AssemblyAI bills per second), quota-aware LLM pool with failover instead of retry storms, 0–2 LLM calls per answer | `api/security.py`, `services/llm.py` |

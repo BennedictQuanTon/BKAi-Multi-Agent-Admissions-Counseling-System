@@ -87,6 +87,13 @@ def test_unsupported_numbers(answer, evidence, bad):
     # regression: "nếu" → "neu" must not be mistaken for NEU (National Economics University)
     ("Nếu trúng tuyển thì hạn chót xác nhận nhập học là khi nào?", Decision.ALLOW),
     ("Điểm chuẩn NEU năm nay?", Decision.REJECT),
+    # regressions from the 60-probe suite: other universities, including comparisons that also name HCMUT
+    ("Điểm chuẩn Đại học Kinh tế TP.HCM ngành Marketing?", Decision.REJECT),
+    ("So sánh Bách khoa Hà Nội với Bách khoa TP.HCM", Decision.REJECT),
+    ("Điểm chuẩn Y Dược TP.HCM năm 2026?", Decision.REJECT),
+    ("Ngành Kiến trúc của Bách khoa thi những môn gì?", Decision.ALLOW),
+    ("Chương trình quốc tế của Bách khoa học phí bao nhiêu?", Decision.ALLOW),
+    ("Thư viện trường mở cửa mấy giờ?", Decision.UNCERTAIN),  # "trường mở" is not "Đại học Mở"
     ("Có được quy đổi được không", Decision.UNCERTAIN),
 ])
 def test_guardrails(q, decision):
@@ -124,3 +131,9 @@ async def test_event_bus_isolation():
     unbind(tb)
     assert a.queue.get_nowait()["content"] == "A" and a.queue.empty()
     assert b.queue.get_nowait()["content"] == "B" and b.queue.empty()
+
+
+def test_resolver_prefers_the_longest_major_name():
+    # "Chuyên ngành Công nghệ Sinh học số" (254) asked without its prefix must not fall back to "Công nghệ Sinh học" (218)
+    assert facts.resolve("Công nghệ Sinh học số (chương trình dạy và học bằng tiếng Anh) năm 2025?").major_ids == ["tieng_anh:254"]
+    assert facts.resolve("Điểm chuẩn Công nghệ Sinh học tiếng Anh 2025").major_ids == ["tieng_anh:218"]

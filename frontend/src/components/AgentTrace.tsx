@@ -69,9 +69,9 @@ export function AgentTrace({ events, live, defaultOpen = false }: { events: Trac
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-body text-graphite">
         <span className="relative grid h-5 w-5 place-items-center">
           {live ? (
-            <motion.span className="h-2 w-2 rounded-full bg-deep-teal" animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
+            <motion.span className="h-2 w-2 rounded-full bg-brand" animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
           ) : (
-            <span className="text-deep-teal"><Check /></span>
+            <span className="text-brand"><Check /></span>
           )}
         </span>
         <span className="text-ink">{live ? "Các tác tử đang làm việc" : "Cách BKAi tìm câu trả lời"}</span>
@@ -107,7 +107,7 @@ export function AgentTrace({ events, live, defaultOpen = false }: { events: Trac
                     <span
                       className={cn(
                         "absolute -left-6 top-2 grid h-[19px] w-[19px] place-items-center rounded-full border",
-                        done ? "border-deep-teal bg-deep-teal text-white" : "border-warm-mist bg-parchment text-graphite",
+                        done ? "border-brand bg-brand text-white" : "border-warm-mist bg-parchment text-graphite",
                       )}
                     >
                       {done ? <Check /> : <Icon size={11} />}

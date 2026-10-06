@@ -20,14 +20,14 @@ export function VoiceOrb({ state, level }: { state: VoiceState; level: () => num
       <motion.span style={{ scale: ring1 }} className="absolute h-36 w-36 rounded-full border border-warm-mist" />
       {state === "thinking" && (
         <motion.span
-          className="absolute h-40 w-40 rounded-full border-2 border-transparent border-t-deep-teal"
+          className="absolute h-40 w-40 rounded-full border-2 border-transparent border-t-brand"
           animate={{ rotate: 360 }}
           transition={{ duration: 1.1, repeat: Infinity, ease: "linear" }}
         />
       )}
       <motion.span
         style={{ scale }}
-        animate={{ backgroundColor: state === "idle" ? "#27251e" : "#016a71" }}
+        animate={{ backgroundColor: state === "idle" ? "#27251e" : "#1d5fd1" }}
         transition={{ duration: 0.4 }}
         className="h-32 w-32 rounded-full"
       />

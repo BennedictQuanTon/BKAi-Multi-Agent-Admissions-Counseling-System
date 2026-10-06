@@ -8,7 +8,7 @@ import { fadeUp, spring, stagger } from "../lib/motion";
 import { cn } from "../lib/utils";
 
 const BAND = {
-  an_toan: { label: "An toàn", icon: Check, cls: "bg-deep-teal text-white" },
+  an_toan: { label: "An toàn", icon: Check, cls: "bg-brand text-white" },
   vua_suc: { label: "Vừa sức", icon: Minus, cls: "border border-ink text-ink" },
   thu_thach: { label: "Thử thách", icon: TrendingUp, cls: "border border-warm-mist text-graphite" },
   kho: { label: "Khó", icon: TriangleAlert, cls: "bg-hairline text-graphite" },
@@ -29,7 +29,7 @@ function NumberField({ label, value, onChange, step = 0.25, max = 10, hint }: { 
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
         placeholder={hint}
-        className="tabular mt-1 block w-full rounded-inputs border border-warm-mist bg-parchment px-3 py-2 text-body-lg text-ink focus:border-deep-teal focus:outline-none"
+        className="tabular mt-1 block w-full rounded-inputs border border-warm-mist bg-parchment px-3 py-2 text-body-lg text-ink focus:border-brand focus:outline-none"
       />
     </label>
   );
@@ -85,7 +85,7 @@ export default function CounselorPage() {
           <div className="mb-2 text-body-sm text-graphite">Lĩnh vực quan tâm</div>
           <div className="flex flex-wrap gap-2">
             {INTERESTS.map((i) => (
-              <button key={i} onClick={() => toggle("interests", i)} className={cn("rounded-full px-3 py-1.5 text-body", f.interests.includes(i) ? "bg-deep-teal text-white" : "border border-warm-mist text-ink hover:border-ash")}>
+              <button key={i} onClick={() => toggle("interests", i)} className={cn("rounded-full px-3 py-1.5 text-body", f.interests.includes(i) ? "bg-brand text-white" : "border border-warm-mist text-ink hover:border-ash")}>
                 {i}
               </button>
             ))}
@@ -93,7 +93,7 @@ export default function CounselorPage() {
           <div className="mb-2 mt-4 text-body-sm text-graphite">Chương trình (bỏ trống = tất cả)</div>
           <div className="flex flex-wrap gap-2">
             {programs.map((p) => (
-              <button key={p.program_id} onClick={() => toggle("program_ids", p.program_id)} className={cn("rounded-full px-3 py-1.5 text-body", f.program_ids.includes(p.program_id) ? "bg-deep-teal text-white" : "border border-warm-mist text-ink hover:border-ash")}>
+              <button key={p.program_id} onClick={() => toggle("program_ids", p.program_id)} className={cn("rounded-full px-3 py-1.5 text-body", f.program_ids.includes(p.program_id) ? "bg-brand text-white" : "border border-warm-mist text-ink hover:border-ash")}>
                 {p.name.replace("Chương trình ", "")}
               </button>
             ))}
@@ -177,7 +177,7 @@ export default function CounselorPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline px-5 py-3">
                 <span className="text-body-sm text-graphite">{res.recommendations.disclaimer}</span>
                 <button
-                  onClick={() => navigate("/", { state: { q: `Mình được khoảng ${Number(s.diem_xet_tuyen).toFixed(2)} điểm xét tuyển tổng hợp, quan tâm ${f.interests.join(", ") || "các ngành kỹ thuật"}. Nên chọn ngành nào?` } })}
+                  onClick={() => navigate("/chat", { state: { q: `Mình được khoảng ${Number(s.diem_xet_tuyen).toFixed(2)} điểm xét tuyển tổng hợp, quan tâm ${f.interests.join(", ") || "các ngành kỹ thuật"}. Nên chọn ngành nào?` } })}
                   className="flex items-center gap-1 text-body text-ink hover:text-graphite"
                 >
                   Hỏi BKAi tư vấn chi tiết <ArrowRight size={14} />

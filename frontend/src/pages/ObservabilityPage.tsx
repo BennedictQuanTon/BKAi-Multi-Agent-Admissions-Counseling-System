@@ -39,7 +39,7 @@ const COMP_LABEL: Record<string, string> = {
 };
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === "healthy" || status === "configured") return <CircleCheck size={15} className="text-deep-teal" aria-label="healthy" />;
+  if (status === "healthy" || status === "configured") return <CircleCheck size={15} className="text-brand" aria-label="healthy" />;
   if (status === "down") return <CircleX size={15} className="text-ink" aria-label="down" />;
   return <CircleDashed size={15} className="text-ash" aria-label={status} />;
 }
@@ -128,7 +128,7 @@ export default function ObservabilityPage({ onClose }: { onClose?: () => void })
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1 text-body-sm text-graphite">
-            <motion.span className={cn("h-2 w-2 rounded-full", connected ? "bg-deep-teal" : "bg-ash")} animate={connected ? { opacity: [1, 0.35, 1] } : {}} transition={{ duration: 1.6, repeat: Infinity }} />
+            <motion.span className={cn("h-2 w-2 rounded-full", connected ? "bg-brand" : "bg-ash")} animate={connected ? { opacity: [1, 0.35, 1] } : {}} transition={{ duration: 1.6, repeat: Infinity }} />
             {connected ? "Live" : "Offline"}
           </span>
           <select value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="rounded-buttons border border-warm-mist bg-parchment px-2 py-1 text-body-sm" aria-label="Phạm vi dữ liệu">
@@ -263,12 +263,12 @@ export default function ObservabilityPage({ onClose }: { onClose?: () => void })
                 <motion.button key={q.id} layout initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={spring}
                   onClick={() => q.done && setSelected(q.id)} className="block w-full rounded-inputs border border-hairline px-3 py-2 text-left hover:border-warm-mist">
                   <div className="flex items-center gap-2">
-                    {q.done ? <CircleCheck size={14} className="text-deep-teal" /> : <motion.span className="h-2 w-2 rounded-full bg-deep-teal" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }} />}
+                    {q.done ? <CircleCheck size={14} className="text-brand" /> : <motion.span className="h-2 w-2 rounded-full bg-brand" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }} />}
                     <span className="truncate text-body text-ink">{q.query}</span>
                     {q.done && <span className="tabular ml-auto shrink-0 text-body-sm text-graphite">{ms(q.done.latency_ms)}</span>}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {q.events.filter((e) => e.type !== "done").slice(-9).map((e, i) => (
+                    {q.events.filter((e) => e.type === "llm" || e.type === "retrieval" || e.type === "tool" || (e.type === "agent" && e.agent)).slice(-9).map((e, i) => (
                       <span key={i} className="rounded-full bg-parchment px-2 py-0.5 font-mono text-[11px] text-graphite">
                         {e.type === "llm" ? `llm ${e.node} ${ms(e.ms)} · ${e.out_tokens}tok` : e.type === "retrieval" ? `retrieval ${e.hits?.length} chunks ${ms(e.ms)}` : e.type === "tool" ? `${e.tool} ${ms(e.ms)}` : `${e.agent} ${e.status}`}
                       </span>

@@ -100,6 +100,14 @@ def _major_aliases() -> list[tuple[str, list[str]]]:
                     if target in normalize(m["name"]) or target in normalize(m["specializations"] or "")}
             if hits:
                 out.setdefault(alias, set()).update(hits)
+    # Students drop the "Chuyên ngành / Nhóm ngành" prefix: the bare name must still win over shorter, broader names
+    # ("Công nghệ Sinh học số" → 254, not "Công nghệ Sinh học" → 218). Longest-first matching does the rest.
+    for m in majors:
+        bare_text = normalize(re.sub(r"^(Chuyên ngành|Nhóm ngành)\s+", "", m["name"]))
+        bare = strip_accents(bare_text)
+        if len(bare) >= 6 and bare not in out:  # new aliases only; each covers every major whose name/specializations contain it
+            out.setdefault(bare, set()).update(
+                x["major_id"] for x in majors if bare_text in normalize(x["name"]) or bare_text in normalize(x["specializations"] or ""))
     return sorted(((a, sorted(ids)) for a, ids in out.items()), key=lambda x: -len(x[0]))
 
 

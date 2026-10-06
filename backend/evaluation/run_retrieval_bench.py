@@ -41,14 +41,14 @@ def norm(s: str) -> str:
     return s.lower().replace("\\.", ".")
 
 
-def load_cases(seed: int = 7, n_major: int = 30) -> list[dict]:
+def load_cases(seed: int = 7, n_major: int = 30, phrasings: int = 1) -> list[dict]:
     cases = [{**c, "kind": "policy"} for c in json.loads(GOLD.read_text(encoding="utf-8"))]
     majors = sql("SELECT major_code, program_id, name FROM majors ORDER BY program_id, major_code")
     rng = random.Random(seed)
-    for m in rng.sample(majors, n_major):
-        q = rng.choice(TEMPLATES).format(name=m["name"].replace("Nhóm ngành ", "").replace("Chuyên ngành ", ""),
-                                          prog=PROGRAM_PHRASE[m["program_id"]])
-        cases.append({"q": q, "docs": [f"majors/{m['program_id']}-{m['major_code']}"], "must": [], "kind": "major"})
+    for m in rng.sample(majors, min(n_major, len(majors))):
+        for tpl in rng.sample(TEMPLATES, min(phrasings, len(TEMPLATES))):
+            q = tpl.format(name=m["name"].replace("Nhóm ngành ", "").replace("Chuyên ngành ", ""), prog=PROGRAM_PHRASE[m["program_id"]])
+            cases.append({"q": q, "docs": [f"majors/{m['program_id']}-{m['major_code']}"], "must": [], "kind": "major"})
     return cases
 
 
@@ -108,10 +108,16 @@ def ensure_collection(model: str, collection: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--quick", action="store_true", help="production config only")
+    ap.add_argument("--scaled", action="store_true", help="every major, several phrasings; v4 vs v5 configs only")
+    ap.add_argument("--majors", type=int, default=30)
+    ap.add_argument("--phrasings", type=int, default=1)
     args = ap.parse_args()
     s = get_settings()
-    cases = load_cases()
+    if args.scaled:
+        args.majors, args.phrasings = 999, 2
+    cases = load_cases(n_major=args.majors, phrasings=args.phrasings)
+    report_path = REPORT.with_name("retrieval_bench_scaled.json") if args.scaled else REPORT
     bad = check_labels(cases)
     if bad:
         raise SystemExit(f"Unsatisfiable gold labels: {bad}")
@@ -119,7 +125,13 @@ def main() -> None:
           f"{sum(c['kind'] == 'major' for c in cases)} major) — labels verified\n")
 
     results = []
-    if args.quick:
+    if args.scaled:
+        for short, model in (("minilm", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"), ("vn-emb-v2", "AITeamVN/Vietnamese_Embedding_v2")):
+            col = f"bench_{short.replace('-', '_')}"
+            ensure_collection(model, col)
+            results.append(run_config(cases, f"{short} hybrid", mode="hybrid", collection=col, embed_model=model))
+        results.append(run_config(cases, f"PROD {s.embedding.model} + {s.reranker.model}", mode="hybrid_rerank"))
+    elif args.quick:
         results.append(run_config(cases, f"PROD {s.embedding.model} + {s.reranker.model}", mode="hybrid_rerank"))
     else:
         embeddings = {
@@ -150,10 +162,10 @@ def main() -> None:
                 except Exception as e:
                     print(f"skip {rr}: {e}")
 
-    REPORT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT.write_text(json.dumps({"generated_at": datetime.now(timezone.utc).isoformat(), "n_cases": len(cases),
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps({"generated_at": datetime.now(timezone.utc).isoformat(), "n_cases": len(cases),
                                   "results": results}, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"\nreport → {REPORT}")
+    print(f"\nreport → {report_path}")
 
 
 if __name__ == "__main__":

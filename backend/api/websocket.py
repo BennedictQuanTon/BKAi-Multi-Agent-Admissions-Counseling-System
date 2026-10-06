@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from api.hub import hub
 from api.routes import stream_with_hub
+from api.schemas import safe_session
 from api.security import WSSlot, allow, client_ip, ws_admin_ok, ws_origin_ok
 from utils.logger import get_logger
 
@@ -29,6 +31,7 @@ async def ws_chat(ws: WebSocket) -> None:
 
 
 async def _chat_loop(ws: WebSocket) -> None:
+    conn_session = uuid.uuid4().hex  # used only when the client sends no valid session id
     try:
         while True:
             try:
@@ -43,7 +46,8 @@ async def _chat_loop(ws: WebSocket) -> None:
             if not allow(client_ip(ws)):
                 await ws.send_json({"type": "error", "message": "Bạn hỏi hơi nhanh, đợi một chút nhé."})
                 continue
-            async for ev in stream_with_hub(query, data.get("session_id") or "default", data.get("channel") or "chat"):
+            channel = data.get("channel") if data.get("channel") in ("chat", "voice") else "chat"
+            async for ev in stream_with_hub(query, safe_session(data.get("session_id"), conn_session), channel):
                 await ws.send_json(ev)
     except WebSocketDisconnect:
         pass

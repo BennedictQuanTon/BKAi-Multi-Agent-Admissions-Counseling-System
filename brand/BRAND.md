@@ -2,10 +2,15 @@
 
 ## Idea
 
-**The source dot.** A citation's brackets around the one fact that matters: `[•]`.
-BKAi's promise is that every number it gives comes with its source. The mark says that before anyone reads a word.
+**The Bách Khoa cube that speaks.** An isometric cube in three Bách Khoa blues, with three ideas in one mark:
+- a block of knowledge, echoing the cube language people associate with Bách Khoa;
+- a chat tail on its lower face, because it is a counselor that talks;
+- a four-point spark on its top face, for AI.
 
-- **Name:** BKAi (spoken "B-K-A-I"). BK is Bách Khoa, the everyday name for HCMUT.
+This is an original mark for an independent student project. It is **not** the HCMUT logo and must never be used as or
+next to it in a way that suggests the university endorses BKAi.
+
+- **Name:** BKAi (spoken "B-K-A-I"). The wordmark sets **BK** in navy and **Ai** in Bách Khoa blue.
 - **Line:** *Every number has a source.*
 - **Descriptor:** Admissions answers, grounded in the source.
 - **Voice:** calm, precise, warm. Every claim carries a number, and every number a source. No hype words.
@@ -14,47 +19,46 @@ BKAi's promise is that every number it gives comes with its source. The mark say
 
 | File | Use |
 |---|---|
-| `bkai-mark.svg` | Primary: graphite tile, eggshell brackets, Source Blue dot. App icon, favicon, avatars |
-| `bkai-mark-light.svg` | On dark backgrounds |
-| `bkai-symbol.svg` | Brackets and dot without the tile, for inline use at ≥ 20 px |
+| `bkai-mark.svg` | Primary mark on light backgrounds. App icon, favicon, avatars |
+| `bkai-mark-light.svg` | On navy or dark backgrounds |
 | `bkai-lockup.png` | Mark and wordmark (README header) |
 
-- **Construction:** 32-unit grid. Tile radius 9; bracket stroke 2.4 with round caps, 3 units deep; dot radius 2.7 at the centre.
-- **Clear space:** at least the tile's corner radius on every side.
-- **Minimum size:** 16 px.
-- **Don'ts:** never recolour the dot to anything other than Source Blue, never outline the tile, never rotate it.
-- **Wordmark:** "BKAi" in Inter 600, tracking −0.02 em, set at 0.75× the mark's height and 10 px from it at 24 px.
+- **Construction:** 64-unit grid.
+  - Faces: top `#3aa0f0`, left (with the chat tail) `#0d2f86`, right `#1f6fe0`.
+  - White seams 1.6 units wide.
+  - Spark centred on the top face at (32, 17.6).
+- **Clear space:** a quarter of the mark's width. **Minimum size:** 16 px; the seams and spark may drop below 20 px.
+- **Don'ts:** never recolour the faces, rotate the cube, put it inside the HCMUT emblem, or add a container tile.
 
 ## Colour
 
 | Token | Hex | Role |
 |---|---|---|
-| Eggshell | `#fdfcfb` | Page canvas (landing) |
-| Paper | `#f0f0ea` | Feature boxes, insets |
-| Linen | `#e4ded3` | Hairlines, outlined badges |
-| Graphite | `#2e2e2e` | Text, mark tile, primary buttons |
-| Quiet | `#6a6972` | Secondary text |
-| **Source Blue** | `#207dff` | The dot, links, citations, small active accents. Never a large fill |
-| App Teal | `#016a71` | In-product selection and "verified" states (from DESIGN.md) |
+| Navy | `#0d2f86` | "BK", the left face, deep accents |
+| Bách Khoa blue | `#1f6fe0` | "Ai", links, citations, primary buttons on the landing |
+| Sky | `#3aa0f0` | Top face, highlights in the film |
+| App brand | `#1d5fd1` | In-app selection and active states (white text ≥ 4.5:1) |
+| Chart blue | `#2b74e4` | Chart marks (validated: lightness band, chroma, ≥ 3:1 on parchment) |
+| Ink | `#1d1d1f` | Landing text |
+| Canvas | `#fdfcfb` / Cloud `#f5f5f7` | Landing surfaces |
 
-The landing uses Eggshell and Graphite, with Source Blue for references. The product keeps its Perplexity-style
-parchment and teal (`DESIGN.md`). The mark is the same everywhere.
+The app keeps the DESIGN.md structure (parchment, hairlines, compact type), but its single accent is now the Bách Khoa blue.
 
 ## Type
 
-- **Display:** Instrument Sans 500, tight tracking (−0.03 em), for headlines on the landing and in the film.
-- **Text and UI:** Inter (variable), 400–600.
+- **Display:** Instrument Sans 500, tight tracking (about −0.03 em).
+- **Text and UI:** Inter (variable, self-hosted).
 - **Numbers:** tabular figures wherever numbers are compared.
 
 ## Motion
 
-- **Reveal from the source:** content rises 24 px and un-blurs from 8 px with an expo-out ease (`cubic-bezier(0.16, 1, 0.3, 1)`) over 0.9 s.
-- **The dot lands last:** in the logo animation the brackets slide in first, then the dot springs in.
-  In the film, every number on screen converges into the dot before the logo appears.
-- **Scroll-linked, never scroll-jacked:** the product window flattens from a 14° tilt as it scrolls in.
+- **Assemble:** the three faces fly in from their own directions (top from above, sides from the sides, staggered 0.1 s, expo-out); then the seams draw and the spark springs in with a quarter turn.
+- **Match cut:** in the film, the assembled logo flies into the same logo in the app's sidebar, and the product takes over.
+- **Reveal from the source:** content rises and un-blurs with `cubic-bezier(0.16, 1, 0.3, 1)` over 0.9 s.
 - **Respect `prefers-reduced-motion`:** the landing turns all of the above off.
 
 ## Sound (film)
 
-Voice: Kokoro-82M, a blend of `af_heart` 0.65 and `af_bella` 0.35. Score: F major, I–V–vi–IV at 104 BPM, synthesized in
-code (`landing/video/audio.py`). Mixed at −14 LUFS.
+- **Voice:** Kokoro-82M, blending `af_heart` 0.65 and `af_bella` 0.35.
+- **Score:** F major, I–V–vi–IV at 104 BPM, synthesized in code (`frontend/video/audio.py`).
+- **Mix:** −14 LUFS.

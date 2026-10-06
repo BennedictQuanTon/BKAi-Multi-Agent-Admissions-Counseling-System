@@ -5,7 +5,7 @@
 > **Vietnamese admissions counseling for Ho Chi Minh City University of Technology (HCMUT · ĐHQG-HCM), by chat and by voice.**<br/>
 > **Developed by:** Long Quan Ton<br/>
 > **Stack:** LangGraph multi-agent · Gemini 3.5 Flash-Lite · Qdrant hybrid search · SQL fact DB · MCP · AssemblyAI + Kokoro voice · React 19<br/>
-> **Version:** 5.0.0 — [what changed since v1](VERSION.md) · [deployment & security](docs/DEPLOYMENT.md) · [manual test script](docs/MANUAL_TEST.md) · [landing page & 60-s film](landing/README.md) · [brand](brand/BRAND.md)
+> **Version:** 5.0.0 — [what changed since v1](VERSION.md) · [deployment & security](docs/DEPLOYMENT.md) · [manual test script](docs/MANUAL_TEST.md) · [landing page & 60-s film](frontend/video/README.md) · [brand](brand/BRAND.md)
 
 ---
 
@@ -24,24 +24,26 @@ number against the evidence before the answer is finished.
 | | Metric | v5 result | v4 (audited) |
 |---|---|---|---|
 | 🎯 | Real admission cases (easy → out-of-scope) | **8 / 8** | 4 / 5 |
-| 🔢 | Numeric exact match: cut-offs, quotas, tuition, n = 40 | **40 / 40** (Wilson 95% ≥ 0.91) | wrong year on 1 of 5 |
+| 🔢 | Numeric exact match: cut-offs and quotas, n = 200 | **200 / 200** (Wilson 95% ≥ 0.98) | wrong year on 1 of 5 |
 | ⚡ | Cold answer latency p50 · p95 | **1.79 s · 5.0 s** | 27.3 s · 56.6 s |
 | ⏱️ | Time to first token p50 | **1.11 s** | 17.7 s |
-| 🔎 | Retrieval Hit@1 · MRR@10 (80 queries) | **0.875 · 0.912** | 0.667 · 0.762 (24 queries) |
-| 🛡️ | Guardrail precision · recall (16 probes) | **1.0 · 1.0** | — |
+| 🔎 | Retrieval Hit@5 · Hit@1 (198 queries) | **0.955 · 0.828** | Hit@1 0.667 (24 queries) |
+| 🛡️ | Guardrail probes: precision · recall (n = 60) | **60 / 60 · 1.0 · 1.0** | — |
 | 🧑‍🎓 | 9-turn student conversation, end to end | **9 / 9** | — |
 | 🧠 | Remembers score + major after distractor turns | **7 turns** (beyond the 12-message window) | — |
 | 🎙️ | Voice: STT error · end of speech → first audio | **CER 1.26% · 2.55 s** | — |
 | 👥 | Concurrency: 20 cache hits · 6 LLM answers | **p50 344 ms · 1.65 s, 0 errors, 0 leaks** | token leak between users |
-| ✅ | Verifier pass rate · LLM calls per answer | **100% · 0–2** | 3–6 calls |
+| ✅ | Verifier pass rate · LLM calls per answer | **100% on the factual run (99.1% of 679 live answers) · 1.01** | 3–6 calls |
 
 **v4 → v5: 15× faster cold answers, 16× faster first token, and every number in an answer is checked against the source.**
+
+A larger run first found two real bugs (a major-name resolver gap and three missed "other university" questions: 199/200 and 57/60). Both were fixed with unit tests, and the suites were re-run. Earlier reports are kept in `backend/evaluation/reports/history/`.
 
 ### UI
 
 <table>
   <tr>
-    <td align="center"><b>Home</b></td>
+    <td align="center"><b>App home (/chat)</b></td>
     <td align="center"><b>Answer with agent trace & sources</b></td>
   </tr>
   <tr>
@@ -78,11 +80,20 @@ number against the evidence before the answer is finished.
 
 ### Landing page & 60-second film
 
-<p align="center"><a href="landing/public/media/trailer/bkai-trailer-web.mp4"><img src="landing/public/media/og.jpg" alt="BKAi landing page, click to watch the 60-second film" width="760"/></a></p>
+<p align="center"><a href="frontend/public/media/trailer/bkai-trailer-web.mp4"><img src="docs/image/UI_Landing.png" alt="BKAi landing page, click to watch the 60-second film" width="760"/></a></p>
 
-`landing/` is the project's public page. It covers the hero with a live answer replay, the maker, the background and five-version
-journey, real screens in a MacBook, all features, metrics tables with 23 references, and the film. The film is rendered
-from HTML frame by frame, voiced by Kokoro-82M and scored in code. See [landing/README.md](landing/README.md).
+The landing page is the app's front door at `/`, and **Try it** opens the counselor at `/chat`. The page has these sections:
+- a hero with a live answer replay;
+- proof numbers drawn as small charts;
+- a marquee of the full stack;
+- the maker, with certificates;
+- background cards;
+- real screens in a MacBook;
+- the film, which plays muted with sound and caption toggles;
+- a 15-tile bento of features;
+- metrics tables with references.
+
+The film is rendered from HTML frame by frame, voiced by Kokoro-82M and scored in code. See [frontend/video/README.md](frontend/video/README.md).
 
 ---
 
@@ -92,12 +103,12 @@ from HTML frame by frame, voiced by Kokoro-82M and scored in code. See [landing/
 
 | Layer | Components |
 |---|---|
-| **Client** | React 19 SPA: chat, voice (AudioWorklet PCM16), calculator, dashboard, Observability popup |
+| **Client** | React 19 SPA: landing page at `/`, chat at `/chat`, voice (AudioWorklet PCM16), calculator, dashboard, Observability popup. No accounts: memory is per device |
 | **API edge** | FastAPI: REST + `/ws/chat`, `/ws/voice`, `/ws/dashboard`; rate limits, Origin allow-list, PII redaction |
 | **Agents** | LangGraph: Supervisor → Data / Policy / Counsel specialists (in parallel) → Synthesizer → Verifier |
 | **Tools** | 11 read-only tools, also published as an **MCP server** (`mcp_server.py`) |
 | **Knowledge** | `facts.sqlite` (11 tables) · Qdrant collection (340 chunks, dense + sparse) · answer cache collection |
-| **State** | Redis: sessions, student profile, telemetry, rate-limit counters |
+| **State** | Redis: anonymous sessions (7 days), student profile, telemetry, rate-limit counters · browser `localStorage`: device id, recent chats, transcripts |
 | **Models** | Gemini 3.5 Flash-Lite (3.1 Flash-Lite failover) · Vietnamese_Embedding_v2 · bge-reranker-base · AssemblyAI · Kokoro |
 
 ### Project structure
@@ -115,11 +126,12 @@ bkai2/
 │   ├── memory/         Redis sessions, student profile, telemetry, answer cache
 │   ├── api/            REST, WebSockets, voice, security middleware
 │   ├── evaluation/     benchmarks + datasets + reports/*.json
-│   ├── tests/          29 unit tests (no network)
+│   ├── tests/          35 unit tests (no network)
 │   ├── ingest.py       chunk → embed → index into Qdrant
 │   └── mcp_server.py   MCP server (stdio or streamable HTTP)
 ├── frontend/           React 19 + TypeScript + Vite + Tailwind v4 + framer-motion
-├── landing/            public landing page (Vite + React) and the film pipeline (landing/video)
+│                       src/landing = landing page at "/", src/pages = the app (/chat …), video/ = the 60-s film pipeline
+├── scripts/            start.sh / stop.sh (local, no Docker), smoke_prod.py (post-deploy checks)
 ├── brand/              logo files and brand guide (BRAND.md)
 ├── deploy/Caddyfile    TLS reverse proxy for production
 ├── docs/               diagrams (HTML sources + render script), DEPLOYMENT.md, MANUAL_TEST.md, PLAN_v5.md
@@ -137,16 +149,16 @@ bkai2/
 | Orchestration | **LangGraph** 1.x | parallel fan-out with typed state and an evidence reducer |
 | Fact store | **SQLite** (`facts.sqlite`) | numbers are looked up exactly, never retrieved as text |
 | Vector DB | **Qdrant** (embedded or server) | dense + sparse named vectors, RRF fusion in the server, payload filters |
-| Embedding | **AITeamVN/Vietnamese_Embedding_v2** (1024-d) | best Hit@1 among 4 models on our 80-query benchmark |
-| Reranker | **BAAI/bge-reranker-base**, len 384, 12 candidates | Hit@1 0.875 at 307 ms; the Vietnamese reranker scored 0.787 |
-| Cache & memory | **Redis** 8 | sessions (24 h), profile, telemetry, rate limits |
+| Embedding | **AITeamVN/Vietnamese_Embedding_v2** (1024-d) | best of 4 models on the 80-query selection run; Hit@1 0.475 → 0.813 vs MiniLM on 198 queries |
+| Reranker | **BAAI/bge-reranker-base**, len 384, 12 candidates | lifts policy Hit@1 0.74 → 0.82 (198 q); the Vietnamese reranker scored lower (0.787 vs 0.875 on 80 q) |
+| Cache & memory | **Redis** 8 | anonymous sessions (7 days), profile, telemetry, rate limits |
 | STT | **AssemblyAI Universal-3.6 Pro** streaming · Whisper large-v3-turbo fallback | CER 1.26%, final transcript 579 ms after speech |
 | TTS | **Kokoro-Vietnamese** (local) · edge-tts / Gemini TTS fallbacks | first byte 591 ms vs 1,001 ms (Gemini) and 3,821 ms (edge) |
 | Realtime voice | **LiveKit Agents** 1.8.4 worker (optional) | WebRTC / SIP |
 | Tool protocol | **MCP** Python SDK 2.x | the same 11 tools for Claude Desktop, IDEs and other agents |
 | Crawling | **Playwright** + system Chrome, markdownify | the admissions site renders tables with JavaScript |
 | API | **FastAPI**, uvicorn, Pydantic v2 | |
-| Frontend | **React 19**, TypeScript, Vite, **Tailwind v4**, **framer-motion**, lucide | design tokens from `DESIGN.md`; charts are custom SVG |
+| Frontend | **React 19**, TypeScript, Vite, **Tailwind v4**, **framer-motion**, lucide, simple-icons | app tokens from `DESIGN.md`, landing tokens from `Landing Page_DESIGN.md`, Bách Khoa brand ([brand/BRAND.md](brand/BRAND.md)); self-hosted fonts; charts are custom SVG |
 | Deploy | Docker (non-root), **Caddy** auto-HTTPS | `docker-compose.prod.yml` |
 
 ---
@@ -218,7 +230,17 @@ python ingest.py           # chunk → embed → index into Qdrant
 4. **Rerank:** bge-reranker-base scores the top 12 query–chunk pairs and the top 6 parents are returned.
 5. **Corrective hop:** if the best rerank score is below 0.15, the Policy agent reformulates the query once (CRAG-style).
 
-**Benchmark** (`evaluation/run_retrieval_bench.py`, 80 labelled queries: 50 policy + 30 major):
+**Benchmark** (`evaluation/run_retrieval_bench.py`).
+
+`--scaled` uses 198 queries: every major with 2 phrasings, plus 50 policy questions. The report is `retrieval_bench_scaled.json`:
+
+| Configuration | Hit@1 | Hit@3 | Hit@5 | MRR@10 | p50 |
+|---|---:|---:|---:|---:|---:|
+| MiniLM-L12 hybrid (v4 embedding) | 0.475 | 0.859 | 0.924 | 0.674 | 31 ms |
+| Vietnamese_Embedding_v2 hybrid | 0.813 | 0.955 | 0.975 | 0.886 | 38 ms |
+| **+ bge-reranker-base — shipped** | **0.828** | 0.929 | **0.955** | 0.883 | 276 ms |
+
+Model selection used 80 labelled queries (50 policy + 30 major), testing 4 embeddings × 3 modes × 3 rerankers:
 
 | Configuration | Hit@1 | Hit@5 | MRR@10 | nDCG@10 | p50 |
 |---|---:|---:|---:|---:|---:|
@@ -245,7 +267,7 @@ python ingest.py           # chunk → embed → index into Qdrant
 | **Synthesizer** | 1 (streamed) | answers in Vietnamese with `[n]` citations; evidence is treated as data, not instructions |
 | **Verifier** | 0 (+1 repair) | every number in the answer must appear in the evidence; otherwise one repair call |
 
-The specialists run **in parallel**. Typical answers use **0–2 Gemini calls**: 59 of 130 logged requests took the fast path.
+The specialists run **in parallel**. Typical answers use **0–2 Gemini calls** (1.01 on average): 556 of 792 logged requests took the fast path.
 
 ![End-to-End Request Flow](docs/image/Diagram_End_to_End_Request_Flow.png)
 
@@ -255,7 +277,8 @@ The specialists run **in parallel**. Typical answers use **0–2 Gemini calls**:
 
 ![Memory, Semantic Cache & Owner Feedback](docs/image/Diagram_Memory_Semantic_Cache_Owner_Feedback.png)
 
-- **Short-term memory:** the last 12 messages in Redis (24 h TTL).
+- **No accounts, per-device memory:** each browser keeps a random session id, its recent chats and their transcripts in `localStorage`, so a returning student continues where they left off. The server keys memory only by that id. Invalid or placeholder ids (`"default"`…) are replaced, so two visitors never share a memory. **Xoá dữ liệu trên máy này** in the sidebar wipes both sides (for shared computers).
+- **Short-term memory:** the last 12 messages in Redis (7-day TTL).
 - **Structured StudentProfile:** scores, preferred majors, program and region, updated by the Supervisor's patch.
   This is why the memory test still recalls the student's score and major **after 7 distractor turns**, beyond the message window.
 - **Answer cache:** served only when all of these hold:
@@ -335,9 +358,9 @@ model's 6.7 s TTFT after the primary quota ran out; retrieval took only 0.75 s.
 
 ```bash
 cd backend
-pytest -q                                                          # 29 unit tests, no network
-python -m evaluation.run_retrieval_bench --quick                   # retrieval (no LLM quota)
-python -m evaluation.run_e2e_bench --api ws://127.0.0.1:8000 --gap 3   # cases8 · factual · guard · student · memory · load
+pytest -q                                                          # 36 unit tests, no network
+python -m evaluation.run_retrieval_bench --scaled                  # retrieval, 198 queries (no LLM quota)
+python -m evaluation.run_e2e_bench --api ws://127.0.0.1:8000 --factual 200 --gap 2.3   # cases8 · factual · guard · student · memory · load
 python -m evaluation.run_voice_bench --api ws://127.0.0.1:8000     # AssemblyAI + Kokoro end to end
 python -m evaluation.run_tts_bench                                 # TTS latency + intelligibility
 ```
@@ -345,29 +368,30 @@ python -m evaluation.run_tts_bench                                 # TTS latency
 | Suite | n | Result | Latency |
 |---|---:|---|---|
 | Real cases (2 easy · 2 medium · 2 hard · 2 out-of-scope) | 8 | **8 / 8** | p50 1.79 s · p95 5.0 s · TTFT p50 1.11 s |
-| Numeric exact match | 40 | **40 / 40**, verifier 100% | p50 1.35 s · TTFT p50 0.76 s |
-| Guardrails | 16 | precision 1.0 · recall 1.0 | rules < 1 ms |
+| Numeric exact match (150 cut-offs + 50 quotas) | 200 | **200 / 200**, Wilson 95% 0.981–1.0, verifier 100% | p50 1.89 s · TTFT p50 1.04 s |
+| Guardrails (31 refuse · 29 answer) | 60 | **60 / 60**, precision 1.0 · recall 1.0 | rules < 1 ms |
+| Retrieval | 198 | Hit@5 0.955 · Hit@1 0.828 | p50 276 ms |
 | Student conversation (greeting → score → advice → tuition → deadline) | 9 turns | **9 / 9** | — |
 | Memory depth | 0 / 3 / 7 distractors | remembered at every depth | — |
 | Load: cache hits | 20 concurrent | 0 errors, isolated | p50 344 ms · p95 572 ms |
 | Load: LLM answers | 6 concurrent | 0 errors, isolated | p50 1.65 s · p95 2.12 s |
 
-**Real traffic** (`python -m evaluation.summarize_telemetry` → `reports/telemetry_summary.json`, 291 requests from all test sessions):
+**Real traffic** (`python -m evaluation.summarize_telemetry` → `reports/telemetry_summary.json`, 792 requests from all test sessions):
 
 | View | n | p50 | p95 | p99 | TTFT p50 |
 |---|---:|---:|---:|---:|---:|
-| Steady state | 163 | **2.0 s** | **5.4 s** | 6.4 s | 1.2 s |
-| All LLM requests | 211 | 2.6 s | 11.2 s | 31.5 s | 1.5 s |
-| BKAi's own processing (latency − Gemini time) | 211 | **0.1 s** | 0.9 s | — | — |
+| Steady state | 412 | **1.7 s** | **4.6 s** | 6.4 s | 0.9 s |
+| All LLM requests | 679 | 2.3 s | 11.1 s | 22.4 s | 1.4 s |
+| BKAi's own processing (latency − Gemini time) | 679 | **0.13 s** | 0.85 s | — | — |
 
-Steady state excludes 48 requests:
-- 6 first requests after a restart;
-- 8 Gemini 503/504 errors handled by failover;
-- 31 answered by the fallback model after the free tier's 15 requests/minute ran out;
+Steady state excludes 267 requests:
+- 8 first requests after a restart;
+- 24 Gemini 503/504 errors handled by failover;
+- 232 answered by the fallback model while benchmarks pushed past the free tier's 15 requests/minute;
 - 3 provider stalls (more than 8 s to the first token).
 
-Every request was answered (0 errors), and the verifier passed 211 of 211. The long tail comes from the provider, not from
-the pipeline. See [Deployment](#12-security--deployment).
+785 of 792 requests were answered. The other 7 got a polite "busy" reply during a burst run deliberately above the quota.
+The verifier passed 673 of 679 live answers. The long tail comes from the provider, not from the pipeline. See [Deployment](#12-security--deployment).
 
 ---
 
@@ -378,7 +402,7 @@ Controls are mapped to the **OWASP Top 10 for LLM Applications (2026)**; the ful
 | Threat | Control |
 |---|---|
 | Prompt injection | rule guard; prompts mark evidence and the question as *data*; tools are read-only |
-| Sensitive data | ID-card numbers, phone numbers and emails are **redacted before** the LLM, Redis, telemetry and logs; no accounts; 24 h sessions |
+| Sensitive data | ID-card numbers, phone numbers and emails are **redacted before** the LLM, Redis, telemetry and logs; no accounts; anonymous 7-day sessions with validated ids |
 | Misinformation | numbers come only from the fact DB; the deterministic verifier checks every number |
 | Unbounded consumption | per-IP **30/min and 400/day** (production: 20 / 300); ≤ 6 WebSockets per IP; 500-character input cap; 64 KB body cap; 10-minute voice sessions |
 | Hidden context exposure | admin and observability endpoints need `X-Admin-Token` (constant-time comparison); the app refuses to start in production without it; `/docs` is disabled in production |
@@ -386,13 +410,17 @@ Controls are mapped to the **OWASP Top 10 for LLM Applications (2026)**; the ful
 | Data poisoning | official sources only; validation gate; content-hashed `kb_version` |
 | Web layer | Caddy TLS, HSTS, CSP, `nosniff`, `frame-ancestors 'none'`; `X-Forwarded-For` trusted only from the proxy; non-root containers; Qdrant API key on the internal network |
 
-**Production:**
+**Production** (step-by-step pilot guide for ~10 users/day in [docs/DEPLOYMENT.md §0](docs/DEPLOYMENT.md)):
 
 ```bash
-# .env: BKAI_DOMAIN, ADMIN_TOKEN, QDRANT_API_KEY, GOOGLE_API_KEY, ASSEMBLYAI_API_KEY
+# repo-root .env: BKAI_DOMAIN, QDRANT_API_KEY · backend/.env: GOOGLE_API_KEY, ADMIN_TOKEN, ASSEMBLYAI_API_KEY
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend python ingest.py
+backend/.venv/bin/python scripts/smoke_prod.py --base https://$BKAI_DOMAIN --admin-token $ADMIN_TOKEN
 ```
 
+Behind one origin, Caddy serves the SPA (landing `/`, app `/chat`) and proxies `/api` and `/ws` to FastAPI. Production builds call
+the API on the same origin, fonts are self-hosted, and the CSP allows nothing else.
 Rollout: staging → closed pilot (20–50 students, daily owner review) → soft launch → paid Gemini tier for cut-off week.
 Sizing: 4 vCPU / 8 GB RAM. Details, exit criteria and operations are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
@@ -414,8 +442,8 @@ python ingest.py                # build the Qdrant index (models download on fir
 uvicorn main:app --port 8000
 
 # 2 · frontend
-cd ../frontend && npm install && npm run dev     # http://localhost:5173
-cd ../landing && npm install && npm run dev      # landing page, http://localhost:5174
+cd ../frontend && npm install && npm run dev     # landing http://localhost:5173 · app http://localhost:5173/chat
+# production-like: npm run build && npm run preview   (one origin on :4173, /api and /ws proxied like Caddy)
 
 # optional
 python mcp_server.py                              # MCP tools over stdio
@@ -425,7 +453,7 @@ python -m agents.voice_livekit dev                # LiveKit realtime worker
 One command for everything (Redis → backend → frontend, in the background, logs in `.run/logs/`):
 
 ```bash
-scripts/start.sh --open            # add --landing for the landing page, --mcp, --voice; --rebuild re-crawls the data
+scripts/start.sh --open            # landing at :5173, app at :5173/chat; add --mcp, --voice; --rebuild re-crawls the data
 scripts/stop.sh                    # --redis also stops Redis
 ```
 
@@ -475,6 +503,8 @@ For a 25-minute walkthrough of every feature, see [docs/MANUAL_TEST.md](docs/MAN
 | Voice says "Whisper" instead of AssemblyAI | `ASSEMBLYAI_API_KEY` is empty | set the key and restart |
 | `datahub validate` fails | the official site changed | read `data/build/validation_report.json`; the running API keeps the previous build |
 | WebSocket closes with 1008 | Origin not in `API_CORS_ORIGINS` | add the frontend origin |
+| A shared computer shows someone else's chats | per-device memory by design | sidebar → **Xoá dữ liệu trên máy này** |
+| The film does not start by itself | the browser blocks autoplay, or reduced motion is on | press play; sound and captions are separate toggles |
 
 ---
 

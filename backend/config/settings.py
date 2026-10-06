@@ -55,7 +55,7 @@ class RedisSettings(BaseSettings):
 
     url: str = "redis://localhost:6379/0"
     prefix: str = "bkai"
-    session_ttl: int = 60 * 60 * 24
+    session_ttl: int = 60 * 60 * 24 * 7  # anonymous sessions: a returning student keeps context for a week
 
 
 class QdrantSettings(BaseSettings):

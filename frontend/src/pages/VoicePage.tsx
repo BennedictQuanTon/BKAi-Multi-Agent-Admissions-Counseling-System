@@ -203,7 +203,7 @@ export default function VoicePage() {
                 onPointerDown={pttDown}
                 onPointerUp={pttUp}
                 onPointerLeave={pttUp}
-                className="flex items-center gap-2 rounded-inputs bg-deep-teal px-4 py-2 text-body text-white"
+                className="flex items-center gap-2 rounded-inputs bg-brand px-4 py-2 text-body text-white"
               >
                 <Square size={12} fill="currentColor" /> Giữ để nói
               </motion.button>

@@ -1,5 +1,5 @@
 /**
- * Minimal SVG charts following the dataviz spec: one series per chart (single validated teal),
+ * Minimal SVG charts following the dataviz spec: one series per chart (single validated brand blue),
  * ≤24px bars with a 4px rounded data-end and square baseline, hairline solid grid, hover tooltip,
  * table view for accessibility, emphasis = highlight one / grey the rest.
  */

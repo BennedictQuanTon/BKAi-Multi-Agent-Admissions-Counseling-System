@@ -70,7 +70,7 @@ function Cite({ n, source }: { n: number; source?: Source }) {
         href={source?.url || undefined}
         target="_blank"
         rel="noreferrer"
-        className="mx-0.5 inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-hairline px-1 align-[2px] text-[11px] font-medium text-graphite no-underline hover:bg-deep-teal hover:text-white"
+        className="mx-0.5 inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-hairline px-1 align-[2px] text-[11px] font-medium text-graphite no-underline hover:bg-brand hover:text-white"
       >
         {n}
       </a>
@@ -125,14 +125,14 @@ export function AnswerMeta({ done }: { done: Done }) {
         <span className="flex items-center gap-1"><Zap size={13} /> Trả lời từ cache đã duyệt</span>
       ) : v.checked ? (
         <span className={cn("flex items-center gap-1", v.passed ? "text-ink" : "text-graphite")}>
-          <BadgeCheck size={14} className={v.passed ? "text-deep-teal" : ""} />
+          <BadgeCheck size={14} className={v.passed ? "text-brand" : ""} />
           {v.passed ? (v.repaired ? "Đã tự sửa & kiểm chứng số liệu" : "Mọi con số đã được kiểm chứng") : "Có số liệu chưa kiểm chứng"}
         </span>
       ) : null}
       <span className="tabular">{(done.latency_ms / 1000).toFixed(1)}s{done.ttft_ms ? ` · chữ đầu ${(done.ttft_ms / 1000).toFixed(1)}s` : ""}</span>
       <span>{routeLabel(done.route)}</span>
       <span className="ml-auto flex items-center gap-1">
-        <button aria-label="Hữu ích" onClick={() => send("like")} className={cn("rounded-buttons p-1.5 hover:bg-hairline", vote === "like" && "text-deep-teal")}>
+        <button aria-label="Hữu ích" onClick={() => send("like")} className={cn("rounded-buttons p-1.5 hover:bg-hairline", vote === "like" && "text-brand")}>
           <ThumbsUp size={14} />
         </button>
         <button aria-label="Chưa đúng" onClick={() => send("dislike")} className={cn("rounded-buttons p-1.5 hover:bg-hairline", vote === "dislike" && "text-ink")}>

@@ -26,7 +26,12 @@ async def main() -> None:
         b = await p.chromium.launch(channel="chrome", headless=True)
         desk = await b.new_page(viewport={"width": 1440, "height": 900}, device_scale_factor=2)
 
-        await desk.goto(URL, wait_until="networkidle")
+        land = await b.new_page(viewport={"width": 1440, "height": 900}, device_scale_factor=2)
+        await land.goto(URL, wait_until="networkidle")
+        await land.wait_for_timeout(2500)
+        await land.screenshot(path=OUT / "UI_Landing.png")
+
+        await desk.goto(f"{URL}/chat", wait_until="networkidle")
         await desk.wait_for_timeout(1500)
         await desk.screenshot(path=OUT / "UI_Home.png")
 
@@ -56,16 +61,21 @@ async def main() -> None:
         await tall.screenshot(path=OUT / "UI_Dashboard_Benchmarks.png")
 
         obs = await b.new_page(viewport={"width": 1600, "height": 2350}, device_scale_factor=2)
-        await obs.goto(URL, wait_until="networkidle")
+        await obs.goto(f"{URL}/chat", wait_until="networkidle")
         await obs.click("button[aria-label='Mở Observability']")
         await obs.wait_for_timeout(3500)
         await obs.screenshot(path=OUT / "UI_Observability.png")
-        await obs.click("text=Lịch sử truy vết >> xpath=../.. >> button >> nth=0")
+        await obs.evaluate("""() => {
+          const h = [...document.querySelectorAll('*')].find((e) => e.childElementCount === 0 && e.textContent.trim() === 'Lịch sử truy vết');
+          let card = h; while (card && !card.querySelector('button.grid')) card = card.parentElement;
+          const rows = [...card.querySelectorAll('button.grid')];
+          (rows.find((r) => r.textContent.includes('80 điểm')) || rows[0]).click();
+        }""")
         await obs.wait_for_timeout(2500)
         await obs.screenshot(path=OUT / "UI_Observability_Query_Trace.png", clip={"x": 600, "y": 0, "width": 1000, "height": 2350})
 
         mob = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3)
-        await mob.goto(URL, wait_until="networkidle")
+        await mob.goto(f"{URL}/chat", wait_until="networkidle")
         await mob.wait_for_timeout(1200)
         await mob.screenshot(path=OUT / "UI_Mobile.png")
         await b.close()

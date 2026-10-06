@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AgentTrace } from "../components/AgentTrace";
 import { AnswerMeta, Markdown, Sources } from "../components/Answer";
 import { Composer } from "../components/Composer";
-import { api, ChatSocket, getSessionId, rememberSession, type ChatEvent, type Done, type Source, type TraceEvent } from "../lib/api";
+import { api, ChatSocket, getSessionId, loadTranscript, rememberSession, saveTranscript, type ChatEvent, type Done, type Source, type TraceEvent } from "../lib/api";
 import { fadeUp, spring, stagger } from "../lib/motion";
 
 type Turn = {
@@ -54,11 +54,13 @@ export default function ChatPage({ sessionId, onFirstQuestion }: { sessionId: st
   const location = useLocation();
   const [params] = useSearchParams();
 
-  // restore a previous session from the sidebar
+  // Restore the conversation: this device's transcript first (instant, survives server TTL),
+  // otherwise the server's memory of the session (last 12 messages).
   useEffect(() => {
-    const sid = params.get("s");
-    setTurns([]);
-    if (!sid) return;
+    const sid = params.get("s") || sessionId;
+    const local = loadTranscript(sid);
+    setTurns(local.map((t, i) => ({ id: `l${i}`, q: t.q, shown: t.a, target: t.a, trace: [], sources: t.sources ?? [], restored: true })));
+    if (local.length) return;
     api.session(sid).then(({ history }) => {
       const restored: Turn[] = [];
       for (let i = 0; i < history.length; i += 2) {
@@ -68,6 +70,13 @@ export default function ChatPage({ sessionId, onFirstQuestion }: { sessionId: st
       setTurns(restored);
     }).catch(() => undefined);
   }, [params, sessionId]);
+
+  // keep this device's copy of the transcript up to date (finished turns only)
+  useEffect(() => {
+    if (busy) return;
+    const done = turns.filter((t) => (t.done || t.restored) && t.target);
+    if (done.length) saveTranscript(params.get("s") || sessionId, done.map((t) => ({ q: t.q, a: t.target, sources: t.sources.slice(0, 6) })));
+  }, [turns, busy, params, sessionId]);
 
   useEffect(() => () => socket.current.close(), []);
 
@@ -154,17 +163,17 @@ export default function ChatPage({ sessionId, onFirstQuestion }: { sessionId: st
                 </div>
                 <motion.div variants={stagger(0.05, 0.15)} initial="hidden" animate="show" className="mt-3 flex flex-wrap gap-2">
                   {[
-                    { label: "Hỏi đáp", icon: Sparkles, active: true, to: "/" },
+                    { label: "Hỏi đáp", icon: Sparkles, active: true, to: "/chat" },
                     { label: "Tính điểm & chọn ngành", icon: Calculator, to: "/counselor" },
                     { label: "Giọng nói", icon: Mic, to: "/voice" },
                   ].map((c) => (
                     <motion.button
                       key={c.label}
                       variants={fadeUp}
-                      onClick={() => c.to !== "/" && navigate(c.to)}
+                      onClick={() => c.to !== "/chat" && navigate(c.to)}
                       className={
                         c.active
-                          ? "flex items-center gap-1.5 rounded-full bg-deep-teal px-3 py-1.5 text-body text-white"
+                          ? "flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-body text-white"
                           : "flex items-center gap-1.5 rounded-full border border-warm-mist px-3 py-1.5 text-body text-ink hover:border-ash"
                       }
                     >

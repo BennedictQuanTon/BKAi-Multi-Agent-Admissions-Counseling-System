@@ -11,11 +11,20 @@ brew services start redis                 # or any Redis on :6379
 cd backend && source .venv/bin/activate
 python -m datahub all && python ingest.py # only the first time / after data changes
 uvicorn main:app --port 8000
-cd ../frontend && npm run dev             # http://localhost:5173
+cd ../frontend && npm run dev             # landing http://localhost:5173 · app http://localhost:5173/chat
+# or simply: scripts/start.sh --open  (stop with scripts/stop.sh)
 ```
 
 - [ ] `curl localhost:8000/api/health` → `"status":"ok"`, `"qdrant":true`, `"redis":true`
 - [ ] Observability popup → every component green except `stt_whisper` (lazy) — AssemblyAI shows **configured**
+
+## 0.5 · Landing page
+
+- [ ] Open `/` → the cube logo assembles in the nav; the hero answer replays (typing → agents → cited answer → verified)
+- [ ] The four proof tiles animate (8 squares tick, 40 bars fill, ring closes, v4 vs v5 bars); the stack marquee scrolls both ways
+- [ ] Scroll to the film → it starts **muted** by itself; **Sound on** plays audio, **CC** shows captions, pause works
+- [ ] **Try it** (nav, hero, closing) opens `/chat`
+- [ ] Phone width (390 px): no horizontal scroll; the certificate strip and metric tables scroll inside themselves
 
 ## 1 · A student's first conversation (chat) — one session, in order
 
@@ -32,6 +41,13 @@ cd ../frontend && npm run dev             # http://localhost:5173
 | 9 | `Cảm ơn bạn nhiều nha!` | polite close | category *Chào hỏi* |
 
 - [ ] Click **Cuộc trò chuyện mới**, ask #3 alone → it must ask *which* major (no context leak between sessions)
+
+### Anonymous memory (no account)
+
+- [ ] Reload the page or close the tab and reopen `/chat` → the same conversation is still there
+- [ ] Ask "Với điểm đó mình nên chọn ngành nào?" after reopening → it still knows your score (Redis profile, 7 days)
+- [ ] Open `/chat` in a private window → a fresh conversation (different device id); nothing from the first window shows up
+- [ ] Sidebar → **Xoá dữ liệu trên máy này** → confirm → recent chats are gone and the old conversation does not come back after reload
 
 ## 2 · Hard / tricky questions
 
@@ -81,9 +97,9 @@ cd ../frontend && npm run dev             # http://localhost:5173
 
 ```bash
 cd backend
-pytest -q                                                    # 29 unit tests, no network
+pytest -q                                                    # 36 unit tests, no network
 python -m evaluation.run_retrieval_bench --quick             # retrieval, no LLM quota
-python -m evaluation.run_e2e_bench --api ws://127.0.0.1:8000 --gap 3   # cases8 · student · memory · guard · factual · load
+python -m evaluation.run_e2e_bench --api ws://127.0.0.1:8000 --factual 200 --gap 2.3   # cases8 · student · memory · guard · factual · load
 python -m evaluation.run_voice_bench --api ws://127.0.0.1:8000         # AssemblyAI + Kokoro end-to-end
 ```
 

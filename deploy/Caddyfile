@@ -8,7 +8,8 @@
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
-		Content-Security-Policy "default-src 'self'; connect-src 'self' wss://{$BKAI_DOMAIN}; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'"
+		# fonts are self-hosted; the film and its captions are served from the same origin
+		Content-Security-Policy "default-src 'self'; connect-src 'self' wss://{$BKAI_DOMAIN}; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		-Server
 	}
 

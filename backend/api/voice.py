@@ -16,10 +16,12 @@ import asyncio
 import contextlib
 import json
 import re
+import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from api.routes import stream_with_hub
+from api.schemas import safe_session
 from api.security import WSSlot, allow, client_ip, ws_origin_ok
 from config.settings import get_settings
 from services.audio_service import SAMPLE_RATE_OUT, assemblyai_url, stt_record, synth_chunk, transcribe_pcm16
@@ -36,7 +38,7 @@ CLAUSE_MIN = 70
 class VoiceSession:
     def __init__(self, ws: WebSocket) -> None:
         self.ws = ws
-        self.session_id = "voice_default"
+        self.session_id = uuid.uuid4().hex  # replaced by the client id on "start"
         self.answer_task: asyncio.Task | None = None
         self.send_lock = asyncio.Lock()
         self.pcm_buffer = bytearray()
@@ -183,7 +185,7 @@ async def _voice_loop(ws: WebSocket) -> None:
             data = json.loads(msg.get("text") or "{}")
             kind = data.get("type")
             if kind == "start":
-                vs.session_id = data.get("session_id") or vs.session_id
+                vs.session_id = safe_session(data.get("session_id"), vs.session_id)
             elif kind == "end_utterance" and not use_aai:
                 pcm, vs.pcm_buffer = bytes(vs.pcm_buffer), bytearray()
                 if len(pcm) < 16000 * 2 * 0.3:  # < 0.3 s of audio

@@ -23,7 +23,7 @@ services:
   frontend:
     ports: !reset []
     build:
-      args: { VITE_API_URL: "https://${BKAI_DOMAIN}" }
+      args: { VITE_API_URL: "" }   # same origin: Caddy routes /api and /ws to the backend
   caddy:
     image: caddy:2-alpine
     container_name: bkai-caddy

@@ -1,108 +1,109 @@
 {
- "generated_at": "2026-10-06T03:44:31.994621+00:00",
+ "generated_at": "2026-10-06T13:34:59.460065+00:00",
  "prefixes": [
   "bkai_test",
   "bkai_bench",
   "bkai_v5",
-  "bkai"
+  "bkai",
+  "bkai_scale"
  ],
- "requests_total": 291,
+ "requests_total": 792,
  "routes": {
-  "fast_path": 139,
-  "supervisor": 72,
+  "fast_path": 556,
+  "supervisor": 123,
   "cache": 61,
-  "guardrail": 19
+  "guardrail": 52
  },
- "llm_requests": 211,
+ "llm_requests": 679,
  "excluded": {
-  "cold_start": 6,
-  "fallback_model_quota": 31,
+  "cold_start": 8,
+  "fallback_model_quota": 232,
   "gemini_stall": 3,
-  "gemini_error_failover": 8
+  "gemini_error_failover": 24
  },
  "all_llm": {
-  "n": 211,
+  "n": 679,
   "latency_ms": {
-   "p50": 2580.3,
-   "p90": 7331.9,
-   "p95": 11213.8,
-   "p99": 31484.5
+   "p50": 2266.9,
+   "p90": 7638.0,
+   "p95": 11128.6,
+   "p99": 22400.5
   },
   "ttft_ms": {
-   "p50": 1536.2,
-   "p95": 10212.9
+   "p50": 1354.7,
+   "p95": 9201.4
   },
   "non_llm_overhead_ms": {
-   "p50": 106.6,
-   "p95": 936.7
+   "p50": 129.9,
+   "p95": 850.2
   }
  },
  "steady_state": {
-  "n": 163,
+  "n": 412,
   "latency_ms": {
-   "p50": 2006.8,
-   "p90": 4382.2,
-   "p95": 5353.5,
+   "p50": 1702.7,
+   "p90": 3740.8,
+   "p95": 4594.0,
    "p99": 6382.0
   },
   "ttft_ms": {
-   "p50": 1195.8,
-   "p95": 3471.7
+   "p50": 910.8,
+   "p95": 3253.9
   },
   "non_llm_overhead_ms": {
-   "p50": 109.1,
-   "p95": 849.8
+   "p50": 125.7,
+   "p95": 750.7
   }
  },
  "steady_by_route": {
   "fast_path": {
-   "n": 106,
+   "n": 341,
    "latency_ms": {
-    "p50": 1643.9,
-    "p90": 2563.6,
-    "p95": 2880.5,
-    "p99": 3433.7
+    "p50": 1657.7,
+    "p90": 2248.5,
+    "p95": 2732.3,
+    "p99": 3945.1
    },
    "ttft_ms": {
-    "p50": 810.1,
-    "p95": 1547.0
+    "p50": 860.0,
+    "p95": 1444.7
    },
    "non_llm_overhead_ms": {
-    "p50": 105.7,
-    "p95": 550.5
+    "p50": 126.0,
+    "p95": 486.0
    }
   },
   "supervisor": {
-   "n": 57,
+   "n": 71,
    "latency_ms": {
-    "p50": 3876.3,
+    "p50": 3770.1,
     "p90": 5579.0,
     "p95": 6333.6,
-    "p99": 6561.1
+    "p99": 9302.3
    },
    "ttft_ms": {
-    "p50": 2874.8,
+    "p50": 2770.5,
     "p95": 3953.3
    },
    "non_llm_overhead_ms": {
-    "p50": 148.3,
+    "p50": 115.5,
     "p95": 1093.0
    }
   }
  },
  "synthesizer": {
-  "ttft_ms_p50": 776.2,
-  "tpot_ms_p50": 3.8,
-  "tokens_per_s_p50": 106.4
+  "ttft_ms_p50": 801.5,
+  "tpot_ms_p50": 6.9,
+  "tokens_per_s_p50": 68.1
  },
- "llm_calls_per_answer": 0.98,
+ "llm_calls_per_answer": 1.01,
  "tokens_per_llm_answer_p50": {
-  "in": 684,
-  "out": 94
+  "in": 737,
+  "out": 95
  },
  "cache_ms_p50": {
   "single": 59.9,
   "burst_20_concurrent": 307.5
  },
- "verifier_pass": "211/211"
+ "verifier_pass": "673/679"
 }

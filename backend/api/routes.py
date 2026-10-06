@@ -6,11 +6,11 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from api.hub import hub
-from api.schemas import (AdminDeleteRequest, AdminReviewRequest, CalcRequest, ChatRequest, ChatResponse,
+from api.schemas import (SESSION_ID, AdminDeleteRequest, AdminReviewRequest, CalcRequest, ChatRequest, ChatResponse,
                          FeedbackRequest, SessionRequest, TTSRequest)
 from api.security import rate_limit, require_admin
 from config.settings import get_settings
@@ -41,14 +41,14 @@ async def chat(req: ChatRequest) -> ChatResponse:
     return ChatResponse(**{k: v for k, v in final.items() if k in ChatResponse.model_fields})
 
 
-@router.post("/session/clear")
+@router.post("/session/clear", dependencies=[Depends(rate_limit)])
 async def clear_session(req: SessionRequest) -> dict:
     get_session_store().clear(req.session_id)
     return {"status": "ok"}
 
 
-@router.get("/session/{session_id}")
-async def session_state(session_id: str) -> dict:
+@router.get("/session/{session_id}", dependencies=[Depends(rate_limit)])
+async def session_state(session_id: str = Path(..., pattern=SESSION_ID)) -> dict:
     store = get_session_store()
     return {"history": store.history(session_id), "profile": store.profile(session_id).model_dump()}
 

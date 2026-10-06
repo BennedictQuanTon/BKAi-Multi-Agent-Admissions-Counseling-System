@@ -47,7 +47,7 @@ export function Composer({
       layoutId="composer"
       transition={spring}
       onSubmit={submit}
-      className={cn("teal-glow rounded-inputs bg-parchment", hero ? "px-4 pt-4 pb-3" : "px-3.5 pt-3 pb-2.5")}
+      className={cn("brand-glow rounded-inputs bg-parchment", hero ? "px-4 pt-4 pb-3" : "px-3.5 pt-3 pb-2.5")}
     >
       <textarea
         ref={ref}

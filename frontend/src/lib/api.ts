@@ -1,5 +1,9 @@
-export const API_BASE: string = import.meta.env.VITE_API_URL || "http://localhost:8000";
-export const WS_BASE = API_BASE.replace(/^http/, "ws");
+// Production builds talk to the same origin (Caddy routes /api and /ws to the backend);
+// `npm run dev` talks to the local API unless VITE_API_URL says otherwise.
+export const API_BASE: string = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
+export const WS_BASE = API_BASE
+  ? API_BASE.replace(/^http/, "ws")
+  : `${typeof location !== "undefined" && location.protocol === "https:" ? "wss" : "ws"}://${typeof location !== "undefined" ? location.host : ""}`;
 
 /* ── types ─────────────────────────────────────────────── */
 export type TraceEvent = {
@@ -39,9 +43,14 @@ export type ChatEvent =
   | Done
   | { type: "error"; message: string };
 
-/* ── session + local history (per-viewer convenience only) ─ */
+/* ── anonymous, per-device memory ─────────────────────────────────────────────────────────────────
+   No accounts. Each device keeps a random session id, the list of recent chats and their transcripts
+   in localStorage; the server keeps the conversation memory and student profile in Redis (TTL). */
 const SESSION_KEY = "bkai_session";
 const HISTORY_KEY = "bkai_history";
+const CHAT_PREFIX = "bkai_chat:";
+const MAX_SESSIONS = 12;
+const MAX_TURNS_KEPT = 30;
 
 function safeGet(store: Storage, key: string): string | null {
   try {
@@ -58,19 +67,54 @@ function safeSet(store: Storage, key: string, value: string) {
   }
 }
 
-export function getSessionId(): string {
-  let sid = safeGet(sessionStorage, SESSION_KEY);
-  if (!sid) {
-    sid = crypto.randomUUID();
-    safeSet(sessionStorage, SESSION_KEY, sid);
+function randomId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`; // non-secure contexts
   }
+}
+
+export function getSessionId(): string {
+  let sid = safeGet(localStorage, SESSION_KEY) || safeGet(sessionStorage, SESSION_KEY);
+  if (!sid) sid = randomId();
+  safeSet(localStorage, SESSION_KEY, sid);
   return sid;
 }
 
 export function newSessionId(): string {
-  const sid = crypto.randomUUID();
-  safeSet(sessionStorage, SESSION_KEY, sid);
+  const sid = randomId();
+  safeSet(localStorage, SESSION_KEY, sid);
   return sid;
+}
+
+export type SavedTurn = { q: string; a: string; sources?: Source[] };
+
+export function loadTranscript(sid: string): SavedTurn[] {
+  try {
+    return JSON.parse(safeGet(localStorage, CHAT_PREFIX + sid) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function saveTranscript(sid: string, turns: SavedTurn[]) {
+  safeSet(localStorage, CHAT_PREFIX + sid, JSON.stringify(turns.slice(-MAX_TURNS_KEPT)));
+}
+
+/** Forget everything this device stored (for shared computers), and the server-side memory of those sessions. */
+export async function clearDeviceData(): Promise<void> {
+  const ids = new Set([...loadHistory().map((h) => h.id), safeGet(localStorage, SESSION_KEY) || ""].filter(Boolean));
+  await Promise.allSettled([...ids].map((id) => api.clearSession(id)));
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("bkai_") && k !== "bkai_admin")
+      .forEach((k) => localStorage.removeItem(k));
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* storage blocked */
+  }
+  window.dispatchEvent(new Event("bkai-history"));
 }
 
 export type HistoryItem = { id: string; title: string; ts: number };
@@ -86,7 +130,15 @@ export function loadHistory(): HistoryItem[] {
 export function rememberSession(id: string, title: string) {
   const items = loadHistory().filter((h) => h.id !== id);
   items.unshift({ id, title: title.slice(0, 60), ts: Date.now() });
-  safeSet(localStorage, HISTORY_KEY, JSON.stringify(items.slice(0, 12)));
+  const kept = items.slice(0, MAX_SESSIONS);
+  safeSet(localStorage, HISTORY_KEY, JSON.stringify(kept));
+  for (const old of items.slice(MAX_SESSIONS)) {
+    try {
+      localStorage.removeItem(CHAT_PREFIX + old.id);
+    } catch {
+      /* storage blocked */
+    }
+  }
   window.dispatchEvent(new Event("bkai-history"));
 }
 

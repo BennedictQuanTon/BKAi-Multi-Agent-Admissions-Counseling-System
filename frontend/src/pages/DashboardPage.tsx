@@ -75,7 +75,7 @@ export default function DashboardPage() {
         {TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)} className={cn("relative px-3 pb-2.5 pt-1 text-body whitespace-nowrap", tab === t ? "text-ink" : "text-graphite hover:text-ink")}>
             {t}
-            {tab === t && <motion.span layoutId="dash-tab" transition={spring} className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-deep-teal" />}
+            {tab === t && <motion.span layoutId="dash-tab" transition={spring} className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand" />}
           </button>
         ))}
       </div>
@@ -146,7 +146,7 @@ function LiveConsole() {
   return (
     <div className="rounded-cards border border-hairline bg-soft-paper">
       <div className="flex items-center gap-2 border-b border-hairline px-4 py-2.5 text-body text-graphite">
-        <span className={cn("h-2 w-2 rounded-full", connected ? "bg-deep-teal" : "bg-ash")} />
+        <span className={cn("h-2 w-2 rounded-full", connected ? "bg-brand" : "bg-ash")} />
         {connected ? "Đang nhận sự kiện agent theo thời gian thực" : "Mất kết nối"} · {events.length} sự kiện
       </div>
       <div className="scrollbar-thin max-h-[560px] overflow-y-auto font-mono text-[12px]">
@@ -204,11 +204,11 @@ function Questions({ items, token, setToken, onChange }: { items: QuestionRecord
                   {q.verification?.passed === false && " · ⚠ verifier"} {q.user_feedback && ` · người dùng: ${q.user_feedback === "like" ? "👍" : "👎"}`}
                 </div>
               </button>
-              <span className={cn("rounded-full px-2.5 py-0.5 text-body-sm", q.feedback === "correct" ? "bg-deep-teal text-white" : q.feedback === "incorrect" ? "bg-ink text-parchment" : "border border-warm-mist text-graphite")}>
+              <span className={cn("rounded-full px-2.5 py-0.5 text-body-sm", q.feedback === "correct" ? "bg-brand text-white" : q.feedback === "incorrect" ? "bg-ink text-parchment" : "border border-warm-mist text-graphite")}>
                 {q.feedback === "correct" ? "Đúng" : q.feedback === "incorrect" ? "Sai" : "Chưa duyệt"}
               </span>
               <div className="flex gap-1">
-                <button title="Đúng" onClick={() => act(() => api.review(q.id, "correct"))} className="rounded-buttons border border-hairline p-1.5 hover:border-deep-teal"><Check size={14} /></button>
+                <button title="Đúng" onClick={() => act(() => api.review(q.id, "correct"))} className="rounded-buttons border border-hairline p-1.5 hover:border-brand"><Check size={14} /></button>
                 <button title="Sai" onClick={() => act(() => api.review(q.id, "incorrect"))} className="rounded-buttons border border-hairline p-1.5 hover:border-ink"><X size={14} /></button>
                 <button title="Xoá" onClick={() => act(() => api.remove(q.id))} className="rounded-buttons border border-hairline p-1.5 hover:border-ink"><Trash2 size={14} /></button>
               </div>

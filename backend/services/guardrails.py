@@ -30,7 +30,12 @@ class GuardResult:
 # Patterns run on accent-free lowercase text.
 OTHER_UNI = [r"bach khoa ha noi", r"\bbk ?hn\b", r"bach khoa da nang", r"\brmit\b", r"\bfpt\b",
              r"khoa hoc tu nhien", r"cong nghe thong tin dhqg", r"kinh te quoc dan", r"quoc gia ha noi",
-             r"su pham ky thuat", r"\bhcmute\b", r"ton duc thang", r"\bvan lang\b", r"\bdai hoc y duoc\b"]
+             r"su pham ky thuat", r"\bhcmute\b", r"ton duc thang", r"\bvan lang\b", r"\by duoc\b", r"\bhutech\b",
+             r"\bngoai thuong\b", r"pham ngoc thach", r"nguyen tat thanh", r"\bhoa sen\b", r"\bhong bang\b",
+             # "<university> + name" for names that are also HCMUT majors or programs (Kiến trúc, Quốc tế, Kinh tế…)
+             r"\b(dai hoc|truong|dh)\s+(kinh te|y khoa|luat|ngan hang|kien truc|su pham|nong lam|giao thong van tai|"
+             r"cong nghiep|sai gon|quoc te|nhan van|khoa hoc xa hoi|tai chinh|thuong mai|cong nghe thong tin|y te)\b",
+             r"\bdai hoc mo\b"]  # not "trường mở cửa" (the school opens)
 # Acronyms that collide with ordinary Vietnamese once accents are stripped ("nếu" → "neu") — matched on the
 # ORIGINAL text, upper-case only.
 OTHER_UNI_ACRONYMS = r"\b(HUST|NEU|UEH|UIT|HCMUS|FTU|RMIT|FPT)\b"
@@ -57,7 +62,10 @@ def check(query: str) -> GuardResult:
         return GuardResult(Decision.REJECT, "empty")
     if _any(INJECTION, flat):
         return GuardResult(Decision.REJECT, "prompt_injection")
-    if (_any(OTHER_UNI, flat) or re.search(OTHER_UNI_ACRONYMS, query)) and not re.search(r"\b(hcmut|bach khoa (tp|ho chi minh|hcm))\b", flat):
+    other = _any(OTHER_UNI, flat) or re.search(OTHER_UNI_ACRONYMS, query)
+    mentions_hcmut = re.search(r"\b(hcmut|bach khoa (tp|ho chi minh|hcm))\b", flat)
+    comparing = re.search(r"so sanh|khac (gi|nhau)|\bvs\b|\bhay\b.{0,30}\b(tot|hon)\b|\bhon\b", flat)
+    if other and (not mentions_hcmut or comparing):
         return GuardResult(Decision.REJECT, "other_university")
     if _any(OFF_TOPIC, flat):
         return GuardResult(Decision.REJECT, "off_topic")
