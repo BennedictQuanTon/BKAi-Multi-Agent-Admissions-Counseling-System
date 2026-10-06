@@ -24,7 +24,7 @@ cd ../frontend && npm run dev             # landing http://localhost:5173 · app
 - [ ] The four proof tiles animate (8 squares tick, 40 bars fill, ring closes, v4 vs v5 bars); the stack marquee scrolls both ways
 - [ ] Scroll to the film → it starts **muted** by itself; **Sound on** plays audio, **CC** shows captions, pause works
 - [ ] **Try it** (nav, hero, closing) opens `/chat`
-- [ ] Phone width (390 px): no horizontal scroll; the certificate strip and metric tables scroll inside themselves
+- [ ] Phone width (390 px): no horizontal scroll; the stack marquee and metric tables scroll inside themselves
 
 ## 1 · A student's first conversation (chat) — one session, in order
 

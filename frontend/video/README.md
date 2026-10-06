@@ -9,7 +9,7 @@ metric cites the report that produced it in `backend/evaluation/reports/`.
 |---|---|---|
 | Hero | `Hero.tsx`, `LiveDemo.tsx`, `Atmosphere.tsx` | headline masks in; a real answer replays in the DOM; painted sky; the window flattens on scroll |
 | Proof and stack | `Proof.tsx` | four numbers, each with a micro-chart (cases, numbers, verified ring, v4 vs v5 speed); a double marquee of 27 technologies with their logos |
-| Maker | `Maker.tsx` | portrait clip-path reveal; awards; strip of 17 certificates with verify links |
+| Maker | `Maker.tsx` | portrait clip-path reveal; Top 10 award, 11 certifications, 5 hackathons |
 | Background | `Story.tsx` | three Apple-style cards with live illustrations (cut-offs that move, agent flow, a verified answer) |
 | Product | `Showcase.tsx`, `Devices.tsx` | six real screens in a MacBook with camera push and numbered callouts |
 | Film and features | `Features.tsx` | the film plays muted when visible (sound, captions and pause toggles); a 15-tile bento |

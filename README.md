@@ -86,7 +86,7 @@ The landing page is the app's front door at `/`, and **Try it** opens the counse
 - a hero with a live answer replay;
 - proof numbers drawn as small charts;
 - a marquee of the full stack;
-- the maker, with certificates;
+- the maker, with awards and certification counts;
 - background cards;
 - real screens in a MacBook;
 - the film, which plays muted with sound and caption toggles;

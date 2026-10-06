@@ -50,14 +50,14 @@ export const MAKER = {
     "BKAi is a solo project. I designed and built every layer, from the crawler and the fact database to the agents, the voice pipeline, this interface and the benchmarks.",
   ],
   credentials: [
-    { k: "Study", v: "Bachelor of AI, UTS × HCMUT" },
+    { k: "Study", v: "Bachelor of AI, UTS × HCMUT · Dean's List 2026" },
     { k: "Research", v: "AI Research Assistant, Speech team, AITechLab, HCMUT" },
     { k: "Industry", v: "Backend AI Engineering Intern, FlyRank AI" },
   ],
   awards: [
     { title: "Top 10 Finalist", event: "Vietnam AI Open Hackathon 2026", by: "NVIDIA · Viettel · Sovico" },
-    { title: "Silver Tier", event: "AI Riser Vietnam 2026", by: "Google for Developers" },
-    { title: "Dean's List 2026", event: "Faculty of Engineering & IT", by: "University of Technology Sydney" },
+    { title: "11 certifications", event: "ML, generative AI, agents, cloud", by: "NVIDIA · AWS · Anthropic · Stanford · IBM" },
+    { title: "5 hackathons", event: "incl. Silver Tier, AI Riser Vietnam 2026", by: "Google · AssemblyAI · AMD · NVIDIA · VYSC" },
   ],
   links: [
     { label: "GitHub", href: "https://github.com/BennedictQuanTon" },
@@ -65,29 +65,6 @@ export const MAKER = {
     { label: "Email", href: "mailto:tonlongquanvn@gmail.com" },
   ],
 };
-
-export type Cert = { title: string; issuer: string; date: string; img: string; verify?: string };
-
-// From the maker's site (MyWebsite/src/data/credentials.ts, projects.ts). Verify links where the issuer provides one.
-export const CERTS: Cert[] = [
-  { title: "Dean's List 2026", issuer: "UTS · Engineering & IT", date: "2026", img: "uts_deans_list_2026" },
-  { title: "Vietnam AI Open Hackathon · Top 10", issuer: "Open Hackathons · OpenACC", date: "Jun 2026", img: "vietnam_ai_open_hackathon" },
-  { title: "AI Riser Vietnam 2026 · Silver", issuer: "Google for Developers", date: "2026", img: "ai_riser_vietnam_2026" },
-  { title: "Machine Learning Specialization", issuer: "Stanford Online · DeepLearning.AI", date: "Jul 2026", img: "dlai_ml_specialization", verify: "https://learn.deeplearning.ai/certificates/03cbca6d-d44e-401d-ad3e-b6baeb80591d" },
-  { title: "Generative AI with Large Language Models", issuer: "DeepLearning.AI · AWS", date: "Jun 2026", img: "dlai_aws_genai_llm", verify: "https://learn.deeplearning.ai/certificates/ded895b0-23ba-4887-b9d4-68239634f73c" },
-  { title: "Agentic AI Explained", issuer: "NVIDIA Deep Learning Institute", date: "2026", img: "nvidia_dli_agentic_ai_explained" },
-  { title: "AI Agents in LangGraph", issuer: "DeepLearning.AI · LangChain", date: "Jun 2026", img: "dlai_ai_agents_langgraph" },
-  { title: "Building Agentic RAG with LlamaIndex", issuer: "DeepLearning.AI · LlamaIndex", date: "Jun 2026", img: "dlai_agentic_rag_llamaindex" },
-  { title: "Functions, Tools and Agents with LangChain", issuer: "DeepLearning.AI · LangChain", date: "Jun 2026", img: "dlai_functions_tools_agents_langchain" },
-  { title: "AI Fluency: Framework & Foundations", issuer: "Anthropic", date: "2026", img: "anthropic_ai_fluency" },
-  { title: "AWS Cloud Practitioner Essentials", issuer: "AWS Training & Certification", date: "Sep 2026", img: "aws_cloud_practitioner_essentials" },
-  { title: "Artificial Intelligence Fundamentals", issuer: "IBM SkillsBuild", date: "Jun 2026", img: "ibm_ai_fundamentals", verify: "https://www.credly.com/badges/dda5f3ce-f99d-4794-acdf-b46754207567" },
-  { title: "AssemblyAI Voice Agent Hackathon", issuer: "Lablab.ai · NativelyAI", date: "2026", img: "assemblyai_voice_agent_hackathon" },
-  { title: "AMD Developer Hackathon: ACT II", issuer: "Lablab.ai · NativelyAI", date: "Jul 2026", img: "amd_developer_hackathon_act2" },
-  { title: "Vietnam Youth Start-up Challenge 2026", issuer: "VYSC", date: "2026", img: "vysc_2026_morphysics" },
-  { title: "Intermediate Machine Learning", issuer: "Kaggle", date: "Jun 2026", img: "kaggle_intermediate_ml" },
-  { title: "Intro to Machine Learning", issuer: "Kaggle", date: "Jun 2026", img: "kaggle_intro_ml" },
-];
 
 export const STORY = [
   {
