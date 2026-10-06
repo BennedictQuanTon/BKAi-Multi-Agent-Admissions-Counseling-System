@@ -14,11 +14,12 @@ const NAV = [
 ];
 
 export function BrandMark({ size = 22 }: { size?: number }) {
+  // The source dot: brackets of a citation around the one fact that matters (brand/BRAND.md).
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <rect x="2" y="2" width="20" height="20" rx="6" fill="#27251e" />
-      <path d="M8 7h5.2a2.8 2.8 0 0 1 0 5.6H8z M8 12.6h6a2.7 2.7 0 0 1 0 5.4H8z" fill="none" stroke="#faf8f5" strokeWidth="1.6" strokeLinejoin="round" />
-      <circle cx="18.2" cy="5.8" r="1.6" fill="#016a71" />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect width="32" height="32" rx="9" fill="#2e2e2e" />
+      <path d="M12.4 9.2H9.4v13.6h3M19.6 9.2h3v13.6h-3" fill="none" stroke="#fdfcfb" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="16" cy="16" r="2.7" fill="#207dff" />
     </svg>
   );
 }

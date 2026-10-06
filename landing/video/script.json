@@ -1,0 +1,110 @@
+{
+  "voice": {
+    "blend": {
+      "af_heart": 0.65,
+      "af_bella": 0.35
+    }
+  },
+  "start": 1.8,
+  "lines": [
+    {
+      "id": "h1",
+      "text": "Choosing a university is a big decision.",
+      "speed": 1.0,
+      "pause": 0.45
+    },
+    {
+      "id": "h2",
+      "text": "And the numbers are everywhere.",
+      "speed": 1.0,
+      "pause": 0.55
+    },
+    {
+      "id": "h3",
+      "text": "Seventy-four admission codes. Nine programs. Cut-offs that change every year.",
+      "speed": 1.04,
+      "pause": 1.3
+    },
+    {
+      "id": "r1",
+      "text": "So I built a counselor that knows every one of them.",
+      "speed": 1.0,
+      "pause": 0.3
+    },
+    {
+      "id": "r2",
+      "text": "Meet BKAi!",
+      "say": "Meet, B. K. A. I.!",
+      "speed": 0.95,
+      "pause": 1.7
+    },
+    {
+      "id": "f1",
+      "text": "Ask anything, in Vietnamese, the way you'd ask a friend.",
+      "speed": 1.02,
+      "pause": 1.5
+    },
+    {
+      "id": "f2",
+      "text": "A team of AI agents finds the facts, in about two seconds.",
+      "say": "A team of A.I. agents finds the facts, in about two seconds.",
+      "speed": 1.02,
+      "pause": 1.5
+    },
+    {
+      "id": "f3",
+      "text": "Every number comes with its source, and is checked before you see it.",
+      "speed": 1.02,
+      "pause": 1.6
+    },
+    {
+      "id": "f4",
+      "text": "Rather talk? Just speak. You can even interrupt!",
+      "speed": 1.02,
+      "pause": 1.5
+    },
+    {
+      "id": "f5",
+      "text": "It remembers your scores, and suggests majors that fit you.",
+      "speed": 1.02,
+      "pause": 1.5
+    },
+    {
+      "id": "f6",
+      "text": "And every answer can be traced, step by step.",
+      "speed": 1.0,
+      "pause": 1.6
+    },
+    {
+      "id": "n1",
+      "text": "Eight out of eight real cases.",
+      "speed": 1.02,
+      "pause": 0.4
+    },
+    {
+      "id": "n2",
+      "text": "Forty out of forty numbers, exactly right.",
+      "speed": 1.02,
+      "pause": 0.4
+    },
+    {
+      "id": "n3",
+      "text": "Fifteen times faster than before.",
+      "speed": 1.0,
+      "pause": 1.3
+    },
+    {
+      "id": "e1",
+      "text": "BKAi.",
+      "say": "B. K. A. I.",
+      "speed": 0.92,
+      "pause": 0.5
+    },
+    {
+      "id": "e2",
+      "text": "Every number has a source.",
+      "speed": 0.94,
+      "pause": 3.2
+    }
+  ]
+}

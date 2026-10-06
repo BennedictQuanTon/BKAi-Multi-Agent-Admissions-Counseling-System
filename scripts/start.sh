@@ -6,9 +6,10 @@
 #   scripts/start.sh --open        … and open the browser
 #   scripts/start.sh --mcp         … plus the MCP server (streamable HTTP :8765)
 #   scripts/start.sh --voice       … plus the LiveKit voice worker (needs LIVEKIT_* in backend/.env)
+#   scripts/start.sh --landing     … plus the landing page on :5174
 #   scripts/start.sh --rebuild     re-crawl and rebuild the knowledge base first
 #
-# Ports: BACKEND_PORT=8000 FRONTEND_PORT=5173 MCP_PORT=8765 scripts/start.sh
+# Ports: BACKEND_PORT=8000 FRONTEND_PORT=5173 MCP_PORT=8765 LANDING_PORT=5174 scripts/start.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,7 +18,8 @@ LOGS="$RUN/logs"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 MCP_PORT="${MCP_PORT:-8765}"
-OPEN=0 MCP=0 VOICE=0 REBUILD=0
+LANDING_PORT="${LANDING_PORT:-5174}"
+OPEN=0 MCP=0 VOICE=0 REBUILD=0 LANDING=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -25,7 +27,8 @@ for arg in "$@"; do
     --mcp) MCP=1 ;;
     --voice) VOICE=1 ;;
     --rebuild) REBUILD=1 ;;
-    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --landing) LANDING=1 ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg (see --help)"; exit 1 ;;
   esac
 done
@@ -146,10 +149,23 @@ if [ "$VOICE" = 1 ]; then
   fi
 fi
 
+if [ "$LANDING" = 1 ]; then
+  bold "▸ Landing  → http://localhost:$LANDING_PORT"
+  if running landing; then ok "already running"; else
+    [ -d "$ROOT/landing/node_modules" ] || (cd "$ROOT/landing" && npm install --silent) || die "landing npm install failed"
+    pid=$(listener "$LANDING_PORT"); [ -z "$pid" ] || die "port $LANDING_PORT is used by pid $pid — set LANDING_PORT"
+    cd "$ROOT/landing"
+    nohup ./node_modules/.bin/vite --port "$LANDING_PORT" --strictPort >"$LOGS/landing.log" 2>&1 &
+    echo $! >"$RUN/landing.pid"
+    wait_http "http://localhost:$LANDING_PORT" 60 "$(cat "$RUN/landing.pid")" && ok "ready (pid $(cat "$RUN/landing.pid"))" || warn "landing did not start — see .run/logs/landing.log"
+  fi
+fi
+
 echo
 bold "BKAi is up"
 echo "  App            http://localhost:$FRONTEND_PORT   (Observability: activity icon, top right)"
 echo "  API health     http://localhost:$BACKEND_PORT/api/health"
+[ "$LANDING" = 1 ] && echo "  Landing        http://localhost:$LANDING_PORT"
 echo "  Logs           tail -f .run/logs/backend.log"
 echo "  Stop           scripts/stop.sh"
 [ "$OPEN" = 1 ] && command -v open >/dev/null && open "http://localhost:$FRONTEND_PORT"

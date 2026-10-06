@@ -1,9 +1,11 @@
+<p><img src="brand/bkai-lockup.png" alt="BKAi" height="44"/></p>
+
 # BKAi — Multi-Agent Admissions Counselor for HCMUT
 
 > **Vietnamese admissions counseling for Ho Chi Minh City University of Technology (HCMUT · ĐHQG-HCM), by chat and by voice.**<br/>
 > **Developed by:** Long Quan Ton<br/>
 > **Stack:** LangGraph multi-agent · Gemini 3.5 Flash-Lite · Qdrant hybrid search · SQL fact DB · MCP · AssemblyAI + Kokoro voice · React 19<br/>
-> **Version:** 5.0.0 — [what changed since v1](VERSION.md) · [deployment & security](docs/DEPLOYMENT.md) · [manual test script](docs/MANUAL_TEST.md)
+> **Version:** 5.0.0 — [what changed since v1](VERSION.md) · [deployment & security](docs/DEPLOYMENT.md) · [manual test script](docs/MANUAL_TEST.md) · [landing page & 60-s film](landing/README.md) · [brand](brand/BRAND.md)
 
 ---
 
@@ -74,6 +76,14 @@ number against the evidence before the answer is finished.
 
 <p align="center"><img src="docs/image/UI_Mobile.png" alt="Mobile" width="230"/><br/><sub>Responsive down to 360 px</sub></p>
 
+### Landing page & 60-second film
+
+<p align="center"><a href="landing/public/media/trailer/bkai-trailer-web.mp4"><img src="landing/public/media/og.jpg" alt="BKAi landing page, click to watch the 60-second film" width="760"/></a></p>
+
+`landing/` is the project's public page. It covers the hero with a live answer replay, the maker, the background and five-version
+journey, real screens in a MacBook, all features, metrics tables with 23 references, and the film. The film is rendered
+from HTML frame by frame, voiced by Kokoro-82M and scored in code. See [landing/README.md](landing/README.md).
+
 ---
 
 ## 2. System Architecture
@@ -109,6 +119,8 @@ bkai2/
 │   ├── ingest.py       chunk → embed → index into Qdrant
 │   └── mcp_server.py   MCP server (stdio or streamable HTTP)
 ├── frontend/           React 19 + TypeScript + Vite + Tailwind v4 + framer-motion
+├── landing/            public landing page (Vite + React) and the film pipeline (landing/video)
+├── brand/              logo files and brand guide (BRAND.md)
 ├── deploy/Caddyfile    TLS reverse proxy for production
 ├── docs/               diagrams (HTML sources + render script), DEPLOYMENT.md, MANUAL_TEST.md, PLAN_v5.md
 ├── docker-compose.yml  + docker-compose.prod.yml
@@ -340,8 +352,22 @@ python -m evaluation.run_tts_bench                                 # TTS latency
 | Load: cache hits | 20 concurrent | 0 errors, isolated | p50 344 ms · p95 572 ms |
 | Load: LLM answers | 6 concurrent | 0 errors, isolated | p50 1.65 s · p95 2.12 s |
 
-Over a longer live session (130 requests, including failover and voice), the observed p95 was 8.5 s. That figure is
-dominated by the free tier's 15 requests/minute per model, not by the pipeline. See [Deployment](#12-security--deployment).
+**Real traffic** (`python -m evaluation.summarize_telemetry` → `reports/telemetry_summary.json`, 291 requests from all test sessions):
+
+| View | n | p50 | p95 | p99 | TTFT p50 |
+|---|---:|---:|---:|---:|---:|
+| Steady state | 163 | **2.0 s** | **5.4 s** | 6.4 s | 1.2 s |
+| All LLM requests | 211 | 2.6 s | 11.2 s | 31.5 s | 1.5 s |
+| BKAi's own processing (latency − Gemini time) | 211 | **0.1 s** | 0.9 s | — | — |
+
+Steady state excludes 48 requests:
+- 6 first requests after a restart;
+- 8 Gemini 503/504 errors handled by failover;
+- 31 answered by the fallback model after the free tier's 15 requests/minute ran out;
+- 3 provider stalls (more than 8 s to the first token).
+
+Every request was answered (0 errors), and the verifier passed 211 of 211. The long tail comes from the provider, not from
+the pipeline. See [Deployment](#12-security--deployment).
 
 ---
 
@@ -389,10 +415,18 @@ uvicorn main:app --port 8000
 
 # 2 · frontend
 cd ../frontend && npm install && npm run dev     # http://localhost:5173
+cd ../landing && npm install && npm run dev      # landing page, http://localhost:5174
 
 # optional
 python mcp_server.py                              # MCP tools over stdio
 python -m agents.voice_livekit dev                # LiveKit realtime worker
+```
+
+One command for everything (Redis → backend → frontend, in the background, logs in `.run/logs/`):
+
+```bash
+scripts/start.sh --open            # add --landing for the landing page, --mcp, --voice; --rebuild re-crawls the data
+scripts/stop.sh                    # --redis also stops Redis
 ```
 
 With Docker: `docker compose up -d --build` (add `--profile mcp` or `--profile voice` for the extra services).

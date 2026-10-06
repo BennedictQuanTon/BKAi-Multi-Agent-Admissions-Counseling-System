@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop everything scripts/start.sh started (frontend, backend, MCP server, voice worker).
+# Stop everything scripts/start.sh started (frontend, landing, backend, MCP server, voice worker).
 #
 #   scripts/stop.sh            stop BKAi, leave Redis running (other projects may use it)
 #   scripts/stop.sh --redis    also stop Redis
@@ -13,6 +13,7 @@ RUN="$ROOT/.run"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 MCP_PORT="${MCP_PORT:-8765}"
+LANDING_PORT="${LANDING_PORT:-5174}"
 STOP_REDIS=0
 for arg in "$@"; do
   case "$arg" in
@@ -56,6 +57,7 @@ stop_service() {  # stop_service <name> <port|"">
 
 echo "▸ Stopping BKAi"
 stop_service frontend "$FRONTEND_PORT"
+stop_service landing "$LANDING_PORT"
 stop_service voice ""
 stop_service mcp "$MCP_PORT"
 stop_service backend "$BACKEND_PORT"
