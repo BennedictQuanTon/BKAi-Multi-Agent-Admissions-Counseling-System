@@ -1,404 +1,458 @@
-# BKAi — Multi-Agent Admissions Counseling System (HCMUT)
+# BKAi — Multi-Agent Admissions Counselor for HCMUT
 
-> **In-Depth Technical Report — Multi-Agent Admissions Counseling System**<br/>
+> **Vietnamese admissions counseling for Ho Chi Minh City University of Technology (HCMUT · ĐHQG-HCM), by chat and by voice.**<br/>
 > **Developed by:** Long Quan Ton<br/>
-> **Objective:** Production-shaped Agentic RAG + conversational counselor (chat & voice), Hybrid Search, Redis semantic caching, owner telemetry.<br/>
-> **Version:** 4.0.0
+> **Stack:** LangGraph multi-agent · Gemini 3.5 Flash-Lite · Qdrant hybrid search · SQL fact DB · MCP · AssemblyAI + Kokoro voice · React 19<br/>
+> **Version:** 5.0.0 — [what changed since v1](VERSION.md) · [deployment & security](docs/DEPLOYMENT.md) · [manual test script](docs/MANUAL_TEST.md)
 
 ---
 
 ## 1. Executive Summary
 
-**BKAi** is an admissions counseling AI for Ho Chi Minh City University of Technology (HCMUT / ĐHQG-HCM). It layers a **counselor policy** (clarify → retrieve → advise) on top of an **Agentic RAG** backbone so answers stay grounded in official CSV/Markdown knowledge—not free-form LLM guesses—while supporting **multi-turn chat**, **voice**, and an **owner evaluation loop**.
+BKAi answers the questions Vietnamese high-school students actually ask HCMUT: cut-off scores by major, program
+and year, quotas, tuition, the 2026 combined-score formula, English certificate conversion, deadlines and campus life.
+It also works as a counselor: it computes a student's admission score and sorts majors into *safe / match / reach*.
 
-**4 Core Key Values** _(impact → metric → how/tech)_:
+Every number comes from **official hcmut.edu.vn pages**. They are crawled, validated and loaded into **typed SQL tables**.
+Agents query those tables through tools, write the answer with citations, and a **deterministic verifier** checks every
+number against the evidence before the answer is finished.
 
-- Raised grounded accuracy to **~87%** end-to-end on an internal **120**-item mixed golden set by shipping a **multi-hop Agentic RAG** and counselor graph with **LangGraph**, **Gemini 3.1 Flash-Lite**, hybrid retrieval engine with **ChromaDB + BM25 + BGE reranker**, and **Pydantic**-validated agent I/O.
-- Cut repeat-query latency by **~99%** from **~6.1s** avg cold pipeline to **~0.04–0.05s** cache hits, by promoting human-validated answers into a **Redis** semantic cache (cosine ≥ **0.92**, validated TTL **30d**) with **MiniLM** embeddings and automatic correctness labeling on cache hits.
-- Delivered multi-turn counseling and Vietnamese voice at **~94%** coreference success on **15** dialogue scripts, without a persistent user database, by combining session-scoped student state, intent-aware query rewriting, **LiveKit + Deepgram** speech recognition, and **edge-tts** neural synthesis.
-- Secured data privacy for admissions files by locally hosting **~115** source documents (**150** semantic chunks; designed headroom to **10k+** chunks) inside **Docker** volumes, keeping embeddings and retrieval indexes fully on-prem with zero third-party document egress.
+### Key results (all measured — scripts and JSON reports are in `backend/evaluation/`)
 
-### UI Showcase
+| | Metric | v5 result | v4 (audited) |
+|---|---|---|---|
+| 🎯 | Real admission cases (easy → out-of-scope) | **8 / 8** | 4 / 5 |
+| 🔢 | Numeric exact match: cut-offs, quotas, tuition, n = 40 | **40 / 40** (Wilson 95% ≥ 0.91) | wrong year on 1 of 5 |
+| ⚡ | Cold answer latency p50 · p95 | **1.79 s · 5.0 s** | 27.3 s · 56.6 s |
+| ⏱️ | Time to first token p50 | **1.11 s** | 17.7 s |
+| 🔎 | Retrieval Hit@1 · MRR@10 (80 queries) | **0.875 · 0.912** | 0.667 · 0.762 (24 queries) |
+| 🛡️ | Guardrail precision · recall (16 probes) | **1.0 · 1.0** | — |
+| 🧑‍🎓 | 9-turn student conversation, end to end | **9 / 9** | — |
+| 🧠 | Remembers score + major after distractor turns | **7 turns** (beyond the 12-message window) | — |
+| 🎙️ | Voice: STT error · end of speech → first audio | **CER 1.26% · 2.55 s** | — |
+| 👥 | Concurrency: 20 cache hits · 6 LLM answers | **p50 344 ms · 1.65 s, 0 errors, 0 leaks** | token leak between users |
+| ✅ | Verifier pass rate · LLM calls per answer | **100% · 0–2** | 3–6 calls |
+
+**v4 → v5: 15× faster cold answers, 16× faster first token, and every number in an answer is checked against the source.**
+
+### UI
 
 <table>
   <tr>
-    <td align="center"><b>💬 Chat Landing Page</b></td>
-    <td align="center"><b>🤖 RAG Answer Response</b></td>
+    <td align="center"><b>Home</b></td>
+    <td align="center"><b>Answer with agent trace & sources</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Chat_LandingPage.jpg" alt="Chat Landing Page" width="500"/></td>
-    <td><img src="docs/image/UI_Response.jpg" alt="RAG Response" width="500"/></td>
+    <td><img src="docs/image/UI_Home.png" alt="Home" width="500"/></td>
+    <td><img src="docs/image/UI_Answer_Agent_Trace.png" alt="Agent trace" width="500"/></td>
   </tr>
   <tr>
-    <td align="center"><b>🎙️ Voice Interface Feature</b></td>
-    <td align="center"><b>🛡️ Scope Guardrails Rejection</b></td>
+    <td align="center"><b>Multi-turn follow-up</b></td>
+    <td align="center"><b>Score calculator & major recommendations</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Voice_Feature.jpg" alt="Voice Feature" width="500"/></td>
-    <td><img src="docs/image/UI_Guardrails_Response.jpg" alt="Guardrails Rejection" width="500"/></td>
+    <td><img src="docs/image/UI_Answer_Multiturn.png" alt="Multi-turn" width="500"/></td>
+    <td><img src="docs/image/UI_Counselor.png" alt="Counselor" width="500"/></td>
   </tr>
   <tr>
-    <td align="center"><b>📊 User Dashboard (Stats Overview)</b></td>
-    <td align="center"><b>📈 Owner Dashboard (Analytics)</b></td>
+    <td align="center"><b>Voice (AssemblyAI + Kokoro, barge-in)</b></td>
+    <td align="center"><b>Owner dashboard — benchmarks</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_User_DashBoard.jpg" alt="User Dashboard" width="500"/></td>
-    <td><img src="docs/image/UI_Owner_Dashboard.jpg" alt="Owner Dashboard" width="500"/></td>
+    <td><img src="docs/image/UI_Voice.png" alt="Voice" width="500"/></td>
+    <td><img src="docs/image/UI_Dashboard_Benchmarks.png" alt="Dashboard" width="500"/></td>
   </tr>
   <tr>
-    <td align="center"><b>💻 Live Query Console</b></td>
-    <td align="center"><b>💬 Chat Analyst & Feedback History</b></td>
+    <td align="center"><b>Observability popup (live)</b></td>
+    <td align="center"><b>Per-query trace: waterfall, Gemini calls, chunks</b></td>
   </tr>
   <tr>
-    <td><img src="docs/image/UI_Owner_Dashboard_Live_Query_Management.jpg" alt="Live Query Console" width="500"/></td>
-    <td><img src="docs/image/UI_Owner_Dashboard_Original_Chat_Analyst.jpg" alt="Chat Analyst" width="500"/></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2"><b>📊 Question Trend & Latency Distribution</b></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2"><img src="docs/image/UI_Owner_Dashboard_Question_Trend.jpg" alt="Question Trend" width="600"/></td>
+    <td><img src="docs/image/UI_Observability.png" alt="Observability" width="500"/></td>
+    <td><img src="docs/image/UI_Observability_Query_Trace.png" alt="Query trace" width="500"/></td>
   </tr>
 </table>
+
+<p align="center"><img src="docs/image/UI_Mobile.png" alt="Mobile" width="230"/><br/><sub>Responsive down to 360 px</sub></p>
 
 ---
 
 ## 2. System Architecture
 
-Modular microservices: ingestion → hybrid retrieval → counselor/Agentic RAG → Redis cache/stats → React chat/voice/dashboard. Optional **LiveKit voice worker** for realtime STT.
+![System Architecture](docs/image/Diagram_System_Architecture.png)
 
-### 2.0. System Architecture Diagram
+| Layer | Components |
+|---|---|
+| **Client** | React 19 SPA: chat, voice (AudioWorklet PCM16), calculator, dashboard, Observability popup |
+| **API edge** | FastAPI: REST + `/ws/chat`, `/ws/voice`, `/ws/dashboard`; rate limits, Origin allow-list, PII redaction |
+| **Agents** | LangGraph: Supervisor → Data / Policy / Counsel specialists (in parallel) → Synthesizer → Verifier |
+| **Tools** | 11 read-only tools, also published as an **MCP server** (`mcp_server.py`) |
+| **Knowledge** | `facts.sqlite` (11 tables) · Qdrant collection (340 chunks, dense + sparse) · answer cache collection |
+| **State** | Redis: sessions, student profile, telemetry, rate-limit counters |
+| **Models** | Gemini 3.5 Flash-Lite (3.1 Flash-Lite failover) · Vietnamese_Embedding_v2 · bge-reranker-base · AssemblyAI · Kokoro |
 
-![BKAi System Architecture](docs/image/Diagram_System_Architecture.png)
+### Project structure
 
-### 2.1. Project Directory Structure
-
-```text
+```
 bkai2/
-├── backend/            # Python backend (FastAPI, LangGraph, ChromaDB)
-│   ├── agents/         # LangGraph nodes + LiveKit voice worker (voice_livekit.py)
-│   ├── api/            # REST routes, WebSocket, schemas
-│   ├── config/         # Pydantic settings + prompts
-│   ├── data/           # KB layout tracked via .gitkeep; content gitignored (local only)
-│   │   ├── csv/ · raw/ · pdf/ · docx/ · processed/
-│   ├── evaluation/     # Golden set, counselor dialogues, demo suite + report
-│   ├── ingestion/      # Loader → tagger → chunker → embedder
-│   ├── memory/         # Chroma, Redis semantic cache, conversation memory
-│   ├── services/       # Guardrails, audio, LLM factory
-│   ├── tools/          # Hybrid search, BM25, reranker
-│   ├── workflows/      # LangGraph orchestrator
-│   ├── ingest.py
-│   └── main.py
-├── frontend/           # Chat, Voice, Dashboard (Vite + React + TS)
-├── dashboard/          # Legacy Chart.js telemetry app
-├── docker-compose.yml
-├── docs/image/         # UI screenshots
-└── README.md
+├── backend/
+│   ├── datahub/        crawl → parse → validate → build (official hcmut.edu.vn → facts.sqlite + documents)
+│   ├── knowledge/      entity resolver, SQL fact queries, admission-score formula, recommendation bands
+│   ├── retrieval/      contextual chunking, embeddings, BM25 sparse vectors, Qdrant hybrid search, reranking
+│   ├── agents/         supervisor, data / policy / counsel agents, synthesizer, verifier, LiveKit voice worker
+│   ├── workflows/      LangGraph graph
+│   ├── tools/          tool registry (shared by agents and MCP)
+│   ├── services/       chat pipeline, Gemini pool, event bus, guardrails, PII, classification, audio, observability
+│   ├── memory/         Redis sessions, student profile, telemetry, answer cache
+│   ├── api/            REST, WebSockets, voice, security middleware
+│   ├── evaluation/     benchmarks + datasets + reports/*.json
+│   ├── tests/          29 unit tests (no network)
+│   ├── ingest.py       chunk → embed → index into Qdrant
+│   └── mcp_server.py   MCP server (stdio or streamable HTTP)
+├── frontend/           React 19 + TypeScript + Vite + Tailwind v4 + framer-motion
+├── deploy/Caddyfile    TLS reverse proxy for production
+├── docs/               diagrams (HTML sources + render script), DEPLOYMENT.md, MANUAL_TEST.md, PLAN_v5.md
+├── docker-compose.yml  + docker-compose.prod.yml
+└── VERSION.md          v1 → v5 comparison
 ```
 
 ---
 
-## 3. Technology Stack & Model Routing
+## 3. Technology Stack
 
-BKAi routes specialized agents to **Gemini 3.1 Flash-Lite** under async RPM locks (~**10–15 RPM** configurable) to stay within API quotas while keeping p50 chat latency in the **~5–7s** band when uncached.
-
-### Detailed Tech Stack
-
-- **Backend:** Python 3.11+, FastAPI, Uvicorn, WebSockets.
-- **Orchestration:** LangGraph + LangChain Core (counselor actions + multi-hop RAG).
-- **LLMs:** Google Gemini 3.1 Flash-Lite (rewrite / generate / reflect / guardrail assist).
-- **Retrieval:** ChromaDB + `rank-bm25` + RRF + `BAAI/bge-reranker-base`.
-- **Embeddings:** `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (384-d).
-- **Cache & stats:** Redis Stack (`:6380`) — semantic Q&A cache (DB1), dashboard counters (DB2).
-- **Voice:** LiveKit Agents + **Deepgram Nova STT (`vi`)** + **edge-tts** (`vi-VN-HoaiMyNeural`); in-app fallback **faster-whisper** → RAG → TTS.
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, Recharts.
-
-### Model Routing
-
-| Task / Agent                   | Technology / Model             | Design Rationale                                                                          |
-| :----------------------------- | :----------------------------- | :---------------------------------------------------------------------------------------- |
-| **Query Rewriter / Counselor** | `gemini-3.1-flash-lite`        | Resolves coreference, patches student profile, emits `ASK_CLARIFY \| RETRIEVE \| ADVISE`. |
-| **Retrieval Evaluator**        | Heuristic + lite LLM path      | `SUFFICIENT` / `NEED_MORE` up to 3 hops.                                                  |
-| **Answer Generator**           | `gemini-3.1-flash-lite`        | Chat vs voice persona prompts; grounded on reranked chunks.                               |
-| **Self-Reflection**            | `gemini-3.1-flash-lite`        | Selective factuality check for numeric admissions answers.                                |
-| **Embedding**                  | MiniLM-L12-v2 multilingual     | Fast CPU embeddings for Chroma + cache similarity.                                        |
-| **Reranker**                   | `BAAI/bge-reranker-base`       | Cross-encoder precision on major codes / years.                                           |
-| **Guardrails**                 | Rules + lite Gemini            | Keeps scope on HCMUT admissions.                                                          |
-| **STT**                        | Deepgram Nova (`vi`) / Whisper | Cloud-first realtime; local fallback for in-app voice.                                    |
-| **TTS**                        | edge-tts VI                    | Natural Vietnamese audio for `/api/voice/ask` & LiveKit.                                  |
-
-> **Rate limits:** `acquire_rpm_slot` + env `GEMINI_RPM_LIMIT_*` (demo spacing ~**25s**/pipeline under ~15 RPM client cap).
+| Area | Choice | Why (evidence) |
+|---|---|---|
+| LLM | **Gemini 3.5 Flash-Lite**, `thinking_level=minimal`; failover **3.1 Flash-Lite** | p50 1.4 s per call; quota-aware pool (14 RPM/model) switches models before the first token on 429/503 |
+| Orchestration | **LangGraph** 1.x | parallel fan-out with typed state and an evidence reducer |
+| Fact store | **SQLite** (`facts.sqlite`) | numbers are looked up exactly, never retrieved as text |
+| Vector DB | **Qdrant** (embedded or server) | dense + sparse named vectors, RRF fusion in the server, payload filters |
+| Embedding | **AITeamVN/Vietnamese_Embedding_v2** (1024-d) | best Hit@1 among 4 models on our 80-query benchmark |
+| Reranker | **BAAI/bge-reranker-base**, len 384, 12 candidates | Hit@1 0.875 at 307 ms; the Vietnamese reranker scored 0.787 |
+| Cache & memory | **Redis** 8 | sessions (24 h), profile, telemetry, rate limits |
+| STT | **AssemblyAI Universal-3.6 Pro** streaming · Whisper large-v3-turbo fallback | CER 1.26%, final transcript 579 ms after speech |
+| TTS | **Kokoro-Vietnamese** (local) · edge-tts / Gemini TTS fallbacks | first byte 591 ms vs 1,001 ms (Gemini) and 3,821 ms (edge) |
+| Realtime voice | **LiveKit Agents** 1.8.4 worker (optional) | WebRTC / SIP |
+| Tool protocol | **MCP** Python SDK 2.x | the same 11 tools for Claude Desktop, IDEs and other agents |
+| Crawling | **Playwright** + system Chrome, markdownify | the admissions site renders tables with JavaScript |
+| API | **FastAPI**, uvicorn, Pydantic v2 | |
+| Frontend | **React 19**, TypeScript, Vite, **Tailwind v4**, **framer-motion**, lucide | design tokens from `DESIGN.md`; charts are custom SVG |
+| Deploy | Docker (non-root), **Caddy** auto-HTTPS | `docker-compose.prod.yml` |
 
 ---
 
-## 4. Core Module Analysis
+## 4. Data: From Official Pages to Typed Tables
 
-### 4.1. End-to-End Request Flow (high-value path)
+### 4.1 Sources and reorganisation
 
-![BKAi End-to-End Request Flow](docs/image/Diagram_End_to_End_Request_Flow.png)
+v4 kept hand-copied CSV/Markdown files with no 2026 cut-offs. v5 rebuilds the knowledge base from **16 official
+hcmut.edu.vn pages** (13 HTML tables, 128,912 characters, 2 formula images transcribed by hand), saved as a dated snapshot.
 
-### 4.2. Data Ingestion Pipeline
+The data is reorganised **before** ingest, following one rule: **every fact has one home**.
 
-Transforms **7 CSV** score/quota tables + **3 Markdown** policy docs (PDF/DOCX supported) into searchable chunks:
+1. **Numbers → typed tables.** Cut-offs, quotas, tuition and conversions become rows keyed by year × major × method.
+   Agents read them with SQL, so years and programs cannot get mixed up.
+2. **Policy text → documents.** Each official page becomes Markdown with front-matter (URL, fetch date, type).
+3. **One card per admission code.** 74 generated "major cards" join each code's name, program, combinations,
+   partners and recent cut-offs, so a question like "KTMT CLC" finds one complete chunk.
+4. **Legacy only where evergreen.** 18 background sections from v4 (campus life, dorms…) are kept and labelled `legacy`.
 
-![BKAi Data Ingestion Pipeline](docs/image/Diagram_Data_Ingestion_Pipeline.png)
+![Data Ingestion Pipeline](docs/image/Diagram_Data_Ingestion_Pipeline.png)
 
-1. **Loader** — `.md` by headers; `.csv` row → structured document; `.pdf` / `.docx` text extract.
-2. **Auto-tagger** — years, majors `100–499`, score-bearing flags.
-3. **Chunker** — never splits mid-table row; `MAX_CHUNK_CHARS=1500`.
+### 4.2 The 11 fact tables (`data/curated/structured/*.csv` → `data/build/facts.sqlite`)
 
-### 4.3. Hybrid Retrieval Engine
+| Table | Rows | Grain |
+|---|---:|---|
+| `admission_scores` | 302 | year × major × method (2023–2026; TH combined score, UTXT priority) |
+| `aliases` | 275 | alias → major / program (KHMT, CLC, UTS, accent-free forms…) |
+| `subject_combinations` | 100 | major × subject combination |
+| `majors` | 74 | admission code within a program |
+| `quotas` | 73 | year × major (or program group) |
+| `partner_universities` | 39 | major × partner university |
+| `programs` | 9 | training program (standard, English-taught, Japan-oriented, transfer, UTS…) |
+| `tuition` | 9 | academic year × program group (VND / year) |
+| `admission_timeline` | 6 | key 2026 dates |
+| `english_conversion` | 5 | certificate band → THPT English score |
+| `accreditation` | 3 | accreditation level × counts |
 
-Dense + lexical fusion prevents near-miss major codes (e.g. **106** vs **107**, **109** vs **110**):
+**Files on disk:** 111 Markdown · 20 JSON · 18 CSV · 16 HTML · 2 PNG. **Documents:** 15 official · 74 major cards · 18 legacy.
 
-![BKAi Hybrid Retrieval Engine](docs/image/Diagram_Hybrid_Retrieval_Engine.png)
-
-- **Hybrid Retrieval:** Chroma cosine + BM25 → RRF in memory.
-- **Cross-Encoder:** `bge-reranker-base` selects final context (`RERANK_TOP_K=8`).
-
-### 4.4. Multi-Agent Orchestration (LangGraph)
-
-Counselor policy sits **above** Agentic RAG—not a replacement:
-
-![BKAi Multi-Agent Orchestration](docs/image/Diagram_Multi_Agent_Orchestration.png)
-
-- **Multi-hop:** `NEED_MORE` re-queries up to **3** hops.
-- **Selective reflection:** numeric admissions answers only—saves RPM/latency on greetings.
-- **Channel prompts:** shorter spoken answers on `channel=voice`.
-
-### 4.5. Memory, Semantic Cache & Owner Feedback
-
-![BKAi Memory, Semantic Cache & Owner Feedback](docs/image/Diagram_Memory_Semantic_Cache_Owner_Feedback.png)
-
-- **Short-term memory:** session turns + profile; cleared on **Chat mới** / `/api/session/clear` (page reload keeps `sessionStorage` id → **not** a new chat).
-- **Cache policy:** only **liked/Correct** answers are reusable; cold-start only (`history` empty). Cache hits are recorded as **Correct** by default.
-- **Owner loop:** evaluate → promote/demote cache → live stats / trends.
-
-### 4.6. Voice Counseling Path
-
-```mermaid
-flowchart TB
-  subgraph InApp["In-app Voice page"]
-    MIC["MediaRecorder"] --> WH["faster-whisper"]
-    WH --> ASK["/api/voice/ask"]
-    ASK --> PIPE["same counselor RAG"]
-    PIPE --> TTS["edge-tts MP3"]
-  end
-
-  subgraph Realtime["LiveKit worker optional"]
-    ROOM["LiveKit room"] --> DG["Deepgram STT vi"]
-    DG --> PIPE2["counselor RAG"]
-    PIPE2 --> TTS2["edge-tts"]
-  end
-```
-
-Demo voice path: **2/2** cases returned answer text + MP3 (**~108KB–593KB**); first TTS cold ~**45s**, subsequent ~**16s**.
-
----
-
-## 5. Security & Reliability Architecture
-
-| Layer / Aspect         | Policy & Enforcement Mechanism                                                          |
-| :--------------------- | :-------------------------------------------------------------------------------------- |
-| **Input Sanitization** | Strip injection patterns; hard cap **500** chars.                                       |
-| **Rate Limiting**      | ~**15 RPM**/IP middleware + Gemini async RPM locks.                                     |
-| **CORS Whitelist**     | `localhost:5173/5174/5175` (configurable).                                              |
-| **Domain Guardrails**  | Regex + lite Gemini; **~98%** correct reject/allow on off-campus probes.                |
-| **Privacy posture**    | No persistent user accounts; session memory in RAM; KB hosted locally (Chroma + files). |
-
----
-
-## 6. Performance Metrics & Validation
-
-Internal evaluation on a **120-item mixed golden set** (HCMUT CSV/MD grounded; factual + policy + multi-turn + voice/guardrail), plus live latency probes via `backend/evaluation/run_demo_suite.py` (~**25s** spacing under API RPM limits):
-
-| Metric                           | Result                                                                   |
-| :------------------------------- | :----------------------------------------------------------------------- |
-| **End-to-end grounded accuracy** | **~87%** overall on **n=120** mixed items                                |
-| **Factual scores / quotas**      | **~82%** on ≈70 items (main residual errors: year/method disambiguation) |
-| **Policy / document Q&A**        | **~92%** on ≈25 items                                                    |
-| **Memory / multi-turn**          | **~94%** on ≈15 dialogue scripts                                         |
-| **Voice (RAG + TTS)**            | **~92%** answer+audio success on ≈10 voice items                         |
-| **Scope guardrail**              | **~98%** correct reject/allow on off-campus probes                       |
-| **Cold chat latency**            | avg ≈ **5.8s**, p50 ≈ **5.6s**, max ≈ **12.4s**                          |
-| **Semantic cache hit**           | **~0.04–0.05s** (~**99%** cut vs cold path)                              |
-| **Dashboard avg response time**  | **~6.1s** under mixed traffic                                            |
-| **Knowledge base**               | **7** CSV + **3** MD admissions sources                                  |
-
-Residual failure modes: wrong year/method on TH scores; rare semantic near-neighbor cache collisions on similar majors—mitigated by liked-only reuse + owner Correct/Incorrect.
-
----
-
-## 7. Deployment & Installation
-
-### 7.1. Prerequisites
-
-| Tool / Dependency                   | Minimum Version | Purpose                                      |
-| :---------------------------------- | :-------------- | :------------------------------------------- |
-| **Gemini API Key**                  | —               | Rewrite, generate, reflect, guardrail assist |
-| **Docker Desktop**                  | 20.10+          | Redis Stack / full compose                   |
-| **Docker Compose**                  | v2+             | Multi-service orchestration                  |
-| **Python**                          | 3.11+           | Backend local run                            |
-| **Node.js**                         | v20+            | Frontend local run                           |
-| **Deepgram / LiveKit** _(optional)_ | —               | Realtime voice worker                        |
-
----
-
-### 7.2. Docker Deployment (Recommended)
-
-```mermaid
-graph TB
-  subgraph Cloud["Cloud APIs"]
-    Gemini["Google Gemini<br/>gemini-3.1-flash-lite"]
-    DG["Deepgram STT optional"]
-  end
-
-  subgraph Docker["Docker Compose"]
-    Redis["Redis Stack<br/>bkai-redis :6380→6379"]
-    Backend["Backend FastAPI<br/>:8000"]
-    Frontend["Frontend Nginx<br/>:5173→80"]
-    Dashboard["Dashboard Nginx<br/>:5174→80"]
-  end
-
-  Backend --> Redis
-  Backend --> Gemini
-  Backend -.-> DG
-  Frontend -->|browser| Backend
-  Dashboard -->|browser| Backend
-```
-
-#### Quick Start
-
-1. **Env:** `cp backend/.env.example backend/.env` → set `GOOGLE_API_KEY` (optional LiveKit/Deepgram keys).
-2. **Up:** `docker compose up --build -d`
-3. **Ingest:** `docker compose exec backend python ingest.py`
-4. **Open:**
-   - App: [http://localhost:5173](http://localhost:5173)
-   - Legacy dashboard: [http://localhost:5174](http://localhost:5174)
-   - API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-
-| Service     | Container        | Ports       | Health            |
-| :---------- | :--------------- | :---------- | :---------------- |
-| `redis`     | `bkai-redis`     | `6380:6379` | `redis-cli ping`  |
-| `backend`   | `bkai-backend`   | `8000:8000` | `GET /api/health` |
-| `frontend`  | `bkai-frontend`  | `5173:80`   | HTTP 200          |
-| `dashboard` | `bkai-dashboard` | `5174:80`   | HTTP 200          |
-
-```bash
-docker compose ps
-docker compose logs -f
-docker compose up --build -d backend
-docker compose down          # keep volumes
-docker compose down -v       # wipe volumes
-```
-
----
-
-### 7.3. Manual Deployment (Development)
-
-#### 1. Redis Stack
-
-```bash
-docker run -d --name bkai-redis -p 6380:6379 redis/redis-stack-server:latest
-# or: docker start bkai-redis
-redis-cli -p 6380 ping
-```
-
-#### 2. Backend
+**Validation gate** (`python -m datahub validate`, 0 errors): unique keys, 40 ≤ score ≤ 100, referential integrity,
+**Σ 2026 quota = 5,685** (the official total), and **67 / 67** scores from 2024–2025 match an independent copy.
+The build is swapped in atomically and stamped with a content-hash `kb_version`, which also scopes the answer cache.
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python -m datahub all      # crawl → parse → validate → build
+python ingest.py           # chunk → embed → index into Qdrant
+```
+
+### 4.3 Chunking
+
+![Chunking Strategy](docs/image/Diagram_Chunking_Strategy.png)
+
+- Documents are split on Markdown headings, plus bold or upper-case lines that act as headings. Sections under 240 characters are merged.
+- **Child chunks** (≤ 900 characters) are embedded. Their **parent** (≤ 2,400 characters) goes to the LLM, so tables and formulas stay whole.
+- Each chunk is embedded with a `title › section` prefix (contextual retrieval). Large tables are split with the header repeated.
+- **Result:** 107 documents → **340 chunks** (211 official · 74 major cards · 55 legacy), 575 characters on average.
+
+---
+
+## 5. Hybrid Retrieval
+
+![Hybrid Retrieval Engine](docs/image/Diagram_Hybrid_Retrieval_Engine.png)
+
+1. **Dense:** Vietnamese_Embedding_v2 query vector.
+2. **Sparse:** BM25 vector (hashed tokens, including accent-free forms and bigrams). TF saturation runs in the client; IDF is applied by Qdrant.
+3. **Fusion:** Qdrant prefetches 40 candidates per branch and fuses them with **RRF**, with optional program / source filters.
+4. **Rerank:** bge-reranker-base scores the top 12 query–chunk pairs and the top 6 parents are returned.
+5. **Corrective hop:** if the best rerank score is below 0.15, the Policy agent reformulates the query once (CRAG-style).
+
+**Benchmark** (`evaluation/run_retrieval_bench.py`, 80 labelled queries: 50 policy + 30 major):
+
+| Configuration | Hit@1 | Hit@5 | MRR@10 | nDCG@10 | p50 |
+|---|---:|---:|---:|---:|---:|
+| MiniLM-L12 hybrid (v4 embedding) | 0.425 | 0.900 | 0.641 | 0.711 | 28 ms |
+| bge-m3 hybrid | 0.800 | 0.950 | 0.872 | 0.885 | 41 ms |
+| Vietnamese_Embedding_v2 hybrid | 0.825 | 0.963 | 0.885 | 0.887 | 41 ms |
+| + bge-reranker-v2-m3 (len 512, 20 candidates) | 0.825 | 0.988 | 0.901 | 0.912 | 1,430 ms |
+| + Vietnamese_Reranker (len 512, 20 candidates) | 0.787 | 0.975 | 0.874 | 0.892 | 1,431 ms |
+| **+ bge-reranker-base (len 384, 12 candidates) — shipped** | **0.875** | 0.950 | **0.912** | **0.915** | **307 ms** |
+
+---
+
+## 6. Multi-Agent Orchestration
+
+![Multi-Agent Orchestration](docs/image/Diagram_Multi_Agent_Orchestration.png)
+
+| Node | LLM | Job |
+|---|---|---|
+| **Guardrails** | 0 | rules for other universities, off-topic requests and prompt injection (< 1 ms); unclear inputs go to the Supervisor |
+| **Supervisor** | 0 or 1 | **fast path:** the resolver finds the major, year and intent → no LLM call. Otherwise one structured call returns the plan: scope, intents, rewritten question and a profile patch |
+| **Data agent** | 0 | SQL tools: scores, quotas, tuition, English conversion, timeline, major profiles |
+| **Policy agent** | 0 | hybrid search + rerank + corrective hop |
+| **Counsel agent** | 0 | official 2026 score formula and safe / match / reach bands from the student profile |
+| **Synthesizer** | 1 (streamed) | answers in Vietnamese with `[n]` citations; evidence is treated as data, not instructions |
+| **Verifier** | 0 (+1 repair) | every number in the answer must appear in the evidence; otherwise one repair call |
+
+The specialists run **in parallel**. Typical answers use **0–2 Gemini calls**: 59 of 130 logged requests took the fast path.
+
+![End-to-End Request Flow](docs/image/Diagram_End_to_End_Request_Flow.png)
+
+---
+
+## 7. Memory, Answer Cache & Owner Loop
+
+![Memory, Semantic Cache & Owner Feedback](docs/image/Diagram_Memory_Semantic_Cache_Owner_Feedback.png)
+
+- **Short-term memory:** the last 12 messages in Redis (24 h TTL).
+- **Structured StudentProfile:** scores, preferred majors, program and region, updated by the Supervisor's patch.
+  This is why the memory test still recalls the student's score and major **after 7 distractor turns**, beyond the message window.
+- **Answer cache:** served only when all of these hold:
+  - the owner **approved** the answer;
+  - the entity key matches exactly (major, program, year, method);
+  - the `kb_version` is the same;
+  - cosine similarity is ≥ 0.90;
+  - the session is new (no context to lose).
+
+  "KHMT 2025" can never return a "KTMT 2025" answer.
+- **Owner loop:** Dashboard → Câu hỏi lists every question. Marking an answer correct or incorrect feeds the accuracy chart and the cache.
+
+---
+
+## 8. Voice
+
+![Voice Pipeline](docs/image/Diagram_Voice_Pipeline.png)
+
+- **`/ws/voice`, full duplex.** The browser streams 16 kHz PCM. AssemblyAI returns partial and final transcripts using HCMUT keyterms and semantic turn detection.
+- **Spoken answers.** The graph answers in at most 3 sentences with no markdown. The answer is split into clauses and synthesised by Kokoro while Gemini is still writing.
+- **Speech normaliser.** Numbers, dates, money and acronyms are read naturally ("85,45" → *tám mươi lăm phẩy bốn lăm*).
+- **Barge-in.** Speaking while the bot talks stops playback immediately. Sessions are capped at 10 minutes.
+
+| Voice benchmark | Result |
+|---|---|
+| AssemblyAI transcription (spoken by a different neural voice) | **CER 1.26%**, 3 / 3 correct answers |
+| End of speech → final transcript (p50) | **579 ms** |
+| End of speech → first answer audio (p50) | **2.55 s** |
+| TTS time to first byte (p50): Kokoro CPU · Gemini TTS · edge-tts | **591 ms** · 1,001 ms · 3,821 ms |
+
+---
+
+## 9. MCP Server
+
+The same tools the agents use are published over the Model Context Protocol, so Claude Desktop, IDE agents or other systems can query the official data.
+
+```bash
+python mcp_server.py                     # stdio
+python mcp_server.py --http --port 8765  # streamable HTTP (keep it private: blocked at the proxy in production)
+```
+
+Tools: `find_majors`, `list_majors`, `get_admission_scores`, `get_quotas`, `get_major_profiles`, `get_tuition`,
+`get_english_conversion`, `get_timeline`, `search_documents`, `compute_admission_score`, `recommend_majors`.
+All of them are read-only.
+
+---
+
+## 10. Observability
+
+Click the **activity icon (top right)** to open the Observability popup. It updates live over `/ws/dashboard`:
+
+- **Health:** 11 components (API, Redis, Qdrant, facts DB, Gemini pool, embedder, reranker, Kokoro, AssemblyAI, Whisper, LiveKit).
+- **KPIs:** request count, latency p50/p90/p95/p99, TTFT, TPOT, input/output tokens, confidence, verifier pass rate, cache hit rate, errors.
+- **Charts:**
+  - latency, TTFT, TPOT, confidence and tokens over time;
+  - accuracy donut from owner reviews;
+  - question categories (12 classes) and route mix;
+  - p50 per pipeline stage;
+  - per-model calls, tokens and latency.
+- **Data inventory:** crawl snapshot, rows per fact table, documents and files by type, `kb_version`.
+- **Live feed:** every event of a running question, grouped by question ID.
+- **Query trace:** click any question to open its full record:
+  - a waterfall of guard → supervisor → agents → tools → Gemini (the first-token tick is marked) → verifier;
+  - each Gemini call's model, TTFT, TPOT, tokens and tokens/s;
+  - the ranked chunks with rerank scores;
+  - tool result previews, the plan, the verifier verdict and the answer.
+
+Real-time check: over 12 questions, **215 events** streamed, 0 without a question ID, about 13 events per question
+arrived before `done`, and every trace was complete and in order. Example diagnosis: a 10.5 s turn was the failover
+model's 6.7 s TTFT after the primary quota ran out; retrieval took only 0.75 s.
+
+---
+
+## 11. Evaluation
+
+![Evaluation Framework](docs/image/Diagram_Evaluation_Framework.png)
+
+```bash
+cd backend
+pytest -q                                                          # 29 unit tests, no network
+python -m evaluation.run_retrieval_bench --quick                   # retrieval (no LLM quota)
+python -m evaluation.run_e2e_bench --api ws://127.0.0.1:8000 --gap 3   # cases8 · factual · guard · student · memory · load
+python -m evaluation.run_voice_bench --api ws://127.0.0.1:8000     # AssemblyAI + Kokoro end to end
+python -m evaluation.run_tts_bench                                 # TTS latency + intelligibility
+```
+
+| Suite | n | Result | Latency |
+|---|---:|---|---|
+| Real cases (2 easy · 2 medium · 2 hard · 2 out-of-scope) | 8 | **8 / 8** | p50 1.79 s · p95 5.0 s · TTFT p50 1.11 s |
+| Numeric exact match | 40 | **40 / 40**, verifier 100% | p50 1.35 s · TTFT p50 0.76 s |
+| Guardrails | 16 | precision 1.0 · recall 1.0 | rules < 1 ms |
+| Student conversation (greeting → score → advice → tuition → deadline) | 9 turns | **9 / 9** | — |
+| Memory depth | 0 / 3 / 7 distractors | remembered at every depth | — |
+| Load: cache hits | 20 concurrent | 0 errors, isolated | p50 344 ms · p95 572 ms |
+| Load: LLM answers | 6 concurrent | 0 errors, isolated | p50 1.65 s · p95 2.12 s |
+
+Over a longer live session (130 requests, including failover and voice), the observed p95 was 8.5 s. That figure is
+dominated by the free tier's 15 requests/minute per model, not by the pipeline. See [Deployment](#12-security--deployment).
+
+---
+
+## 12. Security & Deployment
+
+Controls are mapped to the **OWASP Top 10 for LLM Applications (2026)**; the full table is in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+| Threat | Control |
+|---|---|
+| Prompt injection | rule guard; prompts mark evidence and the question as *data*; tools are read-only |
+| Sensitive data | ID-card numbers, phone numbers and emails are **redacted before** the LLM, Redis, telemetry and logs; no accounts; 24 h sessions |
+| Misinformation | numbers come only from the fact DB; the deterministic verifier checks every number |
+| Unbounded consumption | per-IP **30/min and 400/day** (production: 20 / 300); ≤ 6 WebSockets per IP; 500-character input cap; 64 KB body cap; 10-minute voice sessions |
+| Hidden context exposure | admin and observability endpoints need `X-Admin-Token` (constant-time comparison); the app refuses to start in production without it; `/docs` is disabled in production |
+| WebSocket abuse | **Origin allow-list** (CORS does not cover WebSockets); per-IP socket cap |
+| Data poisoning | official sources only; validation gate; content-hashed `kb_version` |
+| Web layer | Caddy TLS, HSTS, CSP, `nosniff`, `frame-ancestors 'none'`; `X-Forwarded-For` trusted only from the proxy; non-root containers; Qdrant API key on the internal network |
+
+**Production:**
+
+```bash
+# .env: BKAI_DOMAIN, ADMIN_TOKEN, QDRANT_API_KEY, GOOGLE_API_KEY, ASSEMBLYAI_API_KEY
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Rollout: staging → closed pilot (20–50 students, daily owner review) → soft launch → paid Gemini tier for cut-off week.
+Sizing: 4 vCPU / 8 GB RAM. Details, exit criteria and operations are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+---
+
+## 13. Getting Started (local, no Docker)
+
+**Requirements:** Python 3.12, Node 20+, Redis on :6379, Google Chrome (for crawling), and a Gemini API key.
+An AssemblyAI key is optional; without it, voice falls back to Whisper.
+
+```bash
+# 1 · backend
+cd backend
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python ingest.py
-python main.py
+cp .env.example .env            # set GOOGLE_API_KEY (and ASSEMBLYAI_API_KEY for streaming voice)
+python -m datahub all           # crawl + build the fact DB (≈1 min)
+python ingest.py                # build the Qdrant index (models download on first run)
+uvicorn main:app --port 8000
+
+# 2 · frontend
+cd ../frontend && npm install && npm run dev     # http://localhost:5173
+
+# optional
+python mcp_server.py                              # MCP tools over stdio
+python -m agents.voice_livekit dev                # LiveKit realtime worker
 ```
 
-#### 3. Frontend
+With Docker: `docker compose up -d --build` (add `--profile mcp` or `--profile voice` for the extra services).
+For a 25-minute walkthrough of every feature, see [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md).
 
-```bash
-cd frontend && npm install && npm run dev
-```
+### Main endpoints
 
-#### 4. Optional LiveKit voice worker
+| Endpoint | Purpose | Access |
+|---|---|---|
+| `POST /api/chat`, `WS /ws/chat` | ask (streamed tokens + agent events) | public, rate-limited |
+| `WS /ws/voice` | full-duplex voice | public, Origin-checked, rate-limited |
+| `POST /api/tools/calc`, `GET /api/majors`, `GET /api/kb` | calculator, major list, knowledge-base summary | public |
+| `POST /api/voice/tts`, `GET /api/voice/config` | speak a text, voice settings | public |
+| `POST /api/feedback`, `POST /api/session/clear` | 👍/👎, reset a session | public |
+| `GET /api/health` | liveness | public |
+| `GET /api/observability/*`, `/api/stats`, `/api/questions`, `/api/eval` | Observability and dashboard | admin token |
+| `POST /api/admin/review`, `/api/admin/delete` | owner review and cache approval | admin token |
+| `WS /ws/dashboard?token=` | live event feed | admin token |
 
-```bash
-cd backend && source .venv/bin/activate
-python -m agents.voice_livekit download-files
-python -m agents.voice_livekit dev
-```
+### Key configuration (`backend/.env`)
 
-#### 5. Optional legacy dashboard
-
-```bash
-cd dashboard && npm install && npm run dev
-```
-
----
-
-### 7.4. Updating Data & Capacity
-
-1. MD → `backend/data/raw/` · CSV → `backend/data/csv/` · PDF/DOCX → respective folders.
-2. Re-run `python ingest.py`.
-3. **Capacity:** local Chroma scales to thousands of admissions pages; retrieval caps `top_k=20` then rerank **8**; Gemini context absorbs fused chunks safely.
-
----
-
-## 8. Environment Configuration
-
-| Variable                            | Default                    | Description                |
-| :---------------------------------- | :------------------------- | :------------------------- |
-| `GOOGLE_API_KEY`                    | `""`                       | Gemini auth                |
-| `GEMINI_MODEL_PRIMARY` / `_FAST`    | `gemini-3.1-flash-lite`    | Generate / rewrite tiers   |
-| `GEMINI_RPM_LIMIT_LITE` / `_FLASH`  | `10`                       | Per-model RPM locks        |
-| `REDIS_URL`                         | `redis://localhost:6380/0` | Cache/stats base URL       |
-| `REDIS_CACHE_DB` / `REDIS_STATS_DB` | `1` / `2`                  | Semantic cache · telemetry |
-| `CHROMA_PERSIST_DIR`                | `./memory/vector_db`       | Local vector path          |
-| `EMBEDDING_MODEL`                   | MiniLM-L12-v2 multilingual | Query/doc embeddings       |
-| `HYBRID_SEARCH_ALPHA`               | `0.7`                      | Dense vs BM25 weight       |
-| `RETRIEVAL_TOP_K` / `RERANK_TOP_K`  | `20` / `8`                 | Retrieve → rerank          |
-| `SEMANTIC_CACHE_THRESHOLD`          | `0.92`                     | Liked-answer reuse floor   |
-| `CACHE_TTL_UNRATED` / `_LIKED`      | `7d` / `30d`               | Cache TTLs                 |
-| `RATE_LIMIT_PER_MINUTE`             | `15`                       | Per-IP API cap             |
-| `MAX_INPUT_LENGTH`                  | `500`                      | Query char limit           |
-| `GUARDRAILS_ENABLED`                | `true`                     | Scope control              |
-| `LIVEKIT_*` / `DEEPGRAM_*`          | —                          | Optional realtime voice    |
+| Variable | Default | Meaning |
+|---|---|---|
+| `GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash-lite` / `gemini-3.1-flash-lite` | model pool |
+| `GEMINI_RPM_PER_MODEL` | 14 | stays under the free tier's 15 RPM |
+| `QDRANT_URL` | *(empty)* | empty = embedded local mode in `data/build/qdrant` |
+| `EMBEDDING_MODEL` / `RERANKER_MODEL` | Vietnamese_Embedding_v2 / bge-reranker-base | chosen by benchmark |
+| `CACHE_THRESHOLD` | 0.90 | similarity floor for approved answers |
+| `APP_ENV` | development | `production` enables strict mode |
+| `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_PER_DAY` | 30 / 400 | per client IP |
+| `ADMIN_TOKEN` | *(empty)* | required in production |
+| `TRUSTED_PROXIES` | *(empty)* | proxies allowed to set `X-Forwarded-For` |
+| `VOICE_TTS_PROVIDER` | kokoro | `kokoro`, `edge` or `gemini` |
+| `ASSEMBLYAI_API_KEY` | *(empty)* | enables streaming STT |
 
 ---
 
-## 9. Troubleshooting
+## 14. Troubleshooting
 
-### 1. Gemini errors / timeouts
-
-Verify `GOOGLE_API_KEY` and RPM limits; space heavy eval runs (~**25s** between pipelines).
-
-### 2. Redis connection refused
-
-Local: `redis://localhost:6380/0` + Redis Stack container. Docker Compose: `redis://redis:6379/0`.
-
-### 3. Slow ingestion / OOM
-
-MiniLM + BGE reranker need ~**1.5GB+** RAM on CPU machines.
-
-### 4. Semantic cache “not working”
-
-Cache runs only when: **(1)** session has **no history** (use **Chat mới**—reload alone is **not** a new session), **(2)** a **liked/Correct** neighbor exists with cosine ≥ **0.92**. Cache hits auto-label **Correct** on the owner dashboard.
-
-### 5. RediSearch “Cannot create index on db != 0”
-
-Expected with `REDIS_CACHE_DB=1`; system falls back to legacy embedding scan—hits still work for exact/liked queries.
+| Symptom | Cause | Fix |
+|---|---|---|
+| Answers suddenly take 5–10 s | primary Gemini model hit 15 RPM; the pool failed over | Observability → model table shows `3.1-flash-lite` calls; wait, or enable billing |
+| HTTP 429 "Bạn hỏi hơi nhanh" | per-IP quota | raise `RATE_LIMIT_PER_MINUTE` for testing |
+| Observability asks for a token | `ADMIN_TOKEN` is set | paste the same token into the prompt |
+| `SSL: CERTIFICATE_VERIFY_FAILED` on voice (macOS python.org build) | missing CA bundle | already handled via `certifi`; otherwise run `Install Certificates.command` |
+| Voice says "Whisper" instead of AssemblyAI | `ASSEMBLYAI_API_KEY` is empty | set the key and restart |
+| `datahub validate` fails | the official site changed | read `data/build/validation_report.json`; the running API keeps the previous build |
+| WebSocket closes with 1008 | Origin not in `API_CORS_ORIGINS` | add the frontend origin |
 
 ---
 
-## 10. Future Roadmap & Scaling
+## 15. Limitations & Roadmap
 
-1. **Auth & multi-tenancy** — persistent counselor profiles beyond session RAM.
-2. **Admissions crawler cron** — refresh notices → re-ingest.
-3. **Text-to-SQL** on structured enrollment stats.
-4. **Hosted Redis / Qdrant** — larger vector + true HNSW on DB0.
-5. **RAGAS / golden CI** — automate the **120+** mixed golden set in CI on every KB ingest.
-6. **Heavier encoders** — optional `bge-m3` when RAM/GPU allows.
+- The free Gemini tier (15 RPM per model) caps throughput; use a paid tier or several projects for peak season.
+- Embedding and reranking run in-process on CPU. Next step: a TEI server or a small GPU (rerank under 60 ms).
+- Kokoro-Vietnamese is intelligible, but its prosody is less natural than cloud voices.
+- The TNE program page returned no tables during the crawl; that program is covered by legacy text.
+- Next: Langfuse traces, RAGAS faithfulness on policy answers, Postgres for multi-instance telemetry,
+  and a scheduled crawl during admission season.
 
 ---
 
-_Technical report aligned to BKAi v4.0.0 (counselor + Agentic RAG + voice + owner feedback). Metrics reflect the internal n=120 mixed golden evaluation; latency figures validated via live API probes._
+_BKAi v5.0.0 · all metrics reproducible from `backend/evaluation/` · version history in [VERSION.md](VERSION.md)_

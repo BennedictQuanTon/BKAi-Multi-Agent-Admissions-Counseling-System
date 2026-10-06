@@ -10,4 +10,8 @@ __pycache__/
 dist/
 build/
 .DS_Store
-data/
+.pytest_cache/
+evaluation/reports/tts_samples/
+data/sources/
+data/legacy/
+data/build/qdrant/

@@ -1,0 +1,42 @@
+# Automatic HTTPS (Let's Encrypt) + security headers + edge limits in front of BKAi.
+{$BKAI_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+		Content-Security-Policy "default-src 'self'; connect-src 'self' wss://{$BKAI_DOMAIN}; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'"
+		-Server
+	}
+
+	request_body {
+		max_size 64KB
+	}
+
+	# API + WebSockets → FastAPI (WS upgrade is handled transparently)
+	@api path /api/* /ws/*
+	handle @api {
+		reverse_proxy backend:8000 {
+			header_up X-Forwarded-For {remote_host}
+			transport http {
+				read_timeout 120s
+			}
+		}
+	}
+
+	# MCP is never exposed publicly; owners reach it over an SSH tunnel.
+	@mcp path /mcp*
+	respond @mcp 404
+
+	handle {
+		reverse_proxy frontend:80
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -1,0 +1,48 @@
+{
+ "summary": {
+  "n": 3,
+  "stt": "assemblyai",
+  "cer_mean": 0.0126,
+  "stt_final_ms_p50": 579.3,
+  "first_audio_ms_p50": 2545.1,
+  "answer_ok": "3/3"
+ },
+ "rows": [
+  {
+   "text": "Điểm chuẩn ngành khoa học máy tính năm hai nghìn không trăm hai mươi sáu là bao nhiêu",
+   "stt": "assemblyai",
+   "transcript": "điểm chuẩn ngành khoa học máy tính năm hai nghìn không trăm hai mươi sáu là bao nhiêu?",
+   "cer": 0.0,
+   "partials": 1,
+   "stt_final_ms": 909.4,
+   "first_audio_ms": 3280.9,
+   "answer": "Điểm chuẩn ngành Khoa học Máy tính năm 2026 theo phương thức Xét tuyển Tổng hợp thang điểm một trăm tùy thuộc vào chương trình bạn chọn nha. \n\nCụ thể, chương trình Tiêu chuẩn mã 106 lấy 85,45 điểm, chương trình Dạy và học bằng tiếng Anh mã 206 lấy 84,23 điểm, chương trình Định hướng Nhật Bản mã 266 lấy 78,69 điểm và chương trình Chuyển tiếp Quốc tế mã 306 lấy 70,84 điểm. Bạn muốn mình chia sẻ thêm thông tin về chỉ tiêu hay tổ hợp xét tuyển của chương trình nào không nè?",
+   "answer_ok": true,
+   "audio_seconds": 4.7
+  },
+  {
+   "text": "Học phí chương trình tiêu chuẩn một năm khoảng bao nhiêu tiền",
+   "stt": "assemblyai",
+   "transcript": "học phí chương trình tiêu chuẩn một năm khoảng bao nhiêu tiền?",
+   "cer": 0.0,
+   "partials": 1,
+   "stt_final_ms": 360.9,
+   "first_audio_ms": 2187.7,
+   "answer": "Học phí chương trình tiêu chuẩn năm học 2024-2025 là 29.000.000 đồng, năm 2025-2026 là 30.000.000 đồng và năm 2026-2027 là 31.500.000 đồng. Bạn có cần mình tư vấn thêm về học phí của các chương trình khác không nhé.",
+   "answer_ok": true,
+   "audio_seconds": 3.81
+  },
+  {
+   "text": "Trường bách khoa có ký túc xá cho tân sinh viên không",
+   "stt": "assemblyai",
+   "transcript": "Trường Bách khoa có ký túc xá cho từng sinh viên không?",
+   "cer": 0.0377,
+   "partials": 1,
+   "stt_final_ms": 579.3,
+   "first_audio_ms": 2545.1,
+   "answer": "Trường Đại học Bách khoa có Ký túc xá tọa lạc tại số 497 Hòa Hảo, Phường Diên Hồng, Thành phố Hồ Chí Minh. Ký túc xá này có chức năng điều hành việc sinh hoạt, ăn ở và học tập ngoài giờ cho sinh viên của trường. Bạn có thể liên hệ tổng đài 028.3957.3946 để biết thêm chi tiết về chỗ ở nhé.",
+   "answer_ok": true,
+   "audio_seconds": 3.65
+  }
+ ]
+}

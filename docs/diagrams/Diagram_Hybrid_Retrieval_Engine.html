@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+</head><body>
+<div id="canvas" style="width:1180px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">Hybrid Retrieval Engine</h1>
+  <p class="sub">Dense semantics + exact-term BM25 fused inside Qdrant, then a cross-encoder picks the evidence.<br>Every component chosen by an 80-query labelled benchmark.</p>
+
+  <div class="col center" style="gap:46px">
+    <div class="box big c-blue" id="q" style="width:560px">
+      <div class="ic"><i data-lucide="message-square-text"></i></div>
+      <div class="t">Query from the Policy agent</div>
+      <div class="d">resolved query (coreference fixed by the Supervisor) · ≤2 search rewrites</div>
+      <div class="pills"><span class="pill p-blue">accent-free tokens</span><span class="pill p-blue">syllable bigrams</span><span class="pill p-blue">abbreviation-aware</span></div>
+    </div>
+
+    <div class="row" style="gap:110px">
+      <div class="box big c-green" id="dense" style="width:420px">
+        <div class="ic"><i data-lucide="brain-circuit"></i></div>
+        <div class="t">Dense retrieval · top 40</div>
+        <div class="d">AITeamVN/Vietnamese_Embedding_v2<br>BGE-M3 fine-tuned on 1.1M VN triplets · 1024-d · cosine</div>
+        <div class="pills"><span class="pill p-green">MPS / CUDA · 12–20 ms</span></div>
+      </div>
+      <div class="box big c-orange" id="sparse" style="width:420px">
+        <div class="ic"><i data-lucide="text-search"></i></div>
+        <div class="t">BM25 sparse · top 40</div>
+        <div class="d">client-side TF saturation (k1 1.2, b 0.75)<br>+ Qdrant server-side IDF modifier</div>
+        <div class="pills"><span class="pill p-orange">exact codes: 106 vs 107</span></div>
+      </div>
+    </div>
+
+    <div class="box big c-purple" id="rrf" style="width:520px">
+      <div class="ic"><i data-lucide="filter"></i></div>
+      <div class="t">Reciprocal Rank Fusion (in Qdrant)</div>
+      <div class="d">one <span class="mono">query_points</span> call · prefetch dense + sparse · payload filters (program, source)</div>
+      <div class="pills"><span class="pill p-purple">Hit@5 0.963 before rerank</span></div>
+    </div>
+
+    <div class="box big c-blue" id="rerank" style="width:520px">
+      <div class="ic"><i data-lucide="network"></i></div>
+      <div class="t">Cross-encoder rerank → top 6</div>
+      <div class="d">BAAI/bge-reranker-base · 12 candidates · 384 tokens<br>beat Vietnamese_Reranker & bge-reranker-v2-m3 on our data</div>
+      <div class="pills"><span class="pill p-blue">Hit@1 0.875 · MRR 0.912 · p50 307 ms</span></div>
+    </div>
+
+    <div class="box big c-teal" id="ctx" style="width:520px">
+      <div class="ic"><i data-lucide="file-text"></i></div>
+      <div class="t">Evidence for the Synthesizer</div>
+      <div class="d">one child per parent section (diversity) → parent text with citation id [n]<br>weak top score (&lt;0.15) → corrective second hop with a reformulated query</div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:34px; gap:14px">
+    <div class="box vert c-blue" style="flex:1"><div class="t">1 · Query</div><ul class="bul"><li>Supervisor resolves context</li><li>Abbrev: KHMT, ĐGNL, CLC</li><li>No-diacritic variants</li></ul></div>
+    <div class="box vert c-green" style="flex:1"><div class="t">2a · Dense</div><ul class="bul"><li>Contextual header embedded</li><li>“title › section” + chunk</li><li>Hit@1 0.762 alone</li></ul></div>
+    <div class="box vert c-orange" style="flex:1"><div class="t">2b · BM25</div><ul class="bul"><li>Codes, years, numbers</li><li>Hashed term ids</li><li>Hit@5 0.938 alone</li></ul></div>
+    <div class="box vert c-purple" style="flex:1"><div class="t">3 · RRF</div><ul class="bul"><li>Rank-based, scale-free</li><li>No α tuning needed</li><li>40 ms end-to-end</li></ul></div>
+    <div class="box vert c-blue" style="flex:1"><div class="t">4 · Rerank</div><ul class="bul"><li>Query × chunk scoring</li><li>+5 pts Hit@1</li><li>Source priority tie-break</li></ul></div>
+  </div>
+
+  <div id="leg"></div>
+</div>
+<script>
+ready(() => {
+  document.getElementById("leg").outerHTML = legend([["green","Dense flow"],["orange","Lexical flow"],["purple","Fusion"],["blue","Rerank / output"],["teal","Corrective hop",true]]);
+  wire("q","dense",{from:"b",to:"t",color:"green"});
+  wire("q","sparse",{from:"b",to:"t",color:"orange"});
+  wire("dense","rrf",{from:"b",to:"t",color:"green",tt:0.3});
+  wire("sparse","rrf",{from:"b",to:"t",color:"orange",tt:0.7});
+  wire("rrf","rerank",{from:"b",to:"t",color:"purple"});
+  wire("rerank","ctx",{from:"b",to:"t",color:"blue"});
+  const W = document.getElementById("canvas").getBoundingClientRect().width;
+  wire("ctx","q",{from:"r",to:"r",color:"teal",dash:true,label:"weak evidence → rewrite & search again",lpos:0.95,ly:-14,
+    path:(x1,y1,x2,y2)=>`M${x1},${y1} H${W-28} V${y2} H${x2}`});
+});
+</script>
+</body></html>

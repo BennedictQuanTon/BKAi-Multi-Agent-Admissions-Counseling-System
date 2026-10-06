@@ -1,0 +1,92 @@
+{
+ "summary": [
+  {
+   "engine": "edge_vi-VN-HoaiMyNeural",
+   "cer_mean": 0.1282,
+   "n": 3
+  },
+  {
+   "engine": "edge_vi-VN-NamMinhNeural",
+   "cer_mean": 0.1438,
+   "n": 3
+  },
+  {
+   "engine": "gemini_Kore",
+   "cer_mean": 0.1202,
+   "n": 2
+  },
+  {
+   "engine": "kokoro_mai_linh",
+   "cer_mean": 0.1632,
+   "n": 3
+  }
+ ],
+ "rows": [
+  {
+   "engine": "edge_vi-VN-HoaiMyNeural",
+   "sample": 0,
+   "cer": 0.0133,
+   "asr": "Chào bạn, mình là Bai, trợ lý tư vấn tuyển sinh của Trường Đại học Bách Khoa."
+  },
+  {
+   "engine": "edge_vi-VN-HoaiMyNeural",
+   "sample": 1,
+   "cer": 0.2404,
+   "asr": "Năm 2026, ngành khoa học máy tính chương trình tiêu chuẩn có điểm chuẩn là 85,45 điểm."
+  },
+  {
+   "engine": "edge_vi-VN-HoaiMyNeural",
+   "sample": 2,
+   "cer": 0.1308,
+   "asr": "Bạn nên chuẩn bị chứng chỉ IELTS từ 6,0 trở lên nếu muốn học chương trình dạy bằng tiếng Anh nhé."
+  },
+  {
+   "engine": "edge_vi-VN-NamMinhNeural",
+   "sample": 0,
+   "cer": 0.0133,
+   "asr": "Chào bạn, mình là Bai, trợ lý tư vấn tuyển sinh của trường Đại học Bách Khoa."
+  },
+  {
+   "engine": "edge_vi-VN-NamMinhNeural",
+   "sample": 1,
+   "cer": 0.2404,
+   "asr": "Năm 2026, ngành khoa học máy tính chương trình tiêu chuẩn có điểm chuẩn là 85,45 điểm."
+  },
+  {
+   "engine": "edge_vi-VN-NamMinhNeural",
+   "sample": 2,
+   "cer": 0.1776,
+   "asr": "Bà nên chuẩn bị chứng chỉ IELTS 6,0 trở lên nếu muốn học chương trình dạy bằng tiếng Anh nhé."
+  },
+  {
+   "engine": "gemini_Kore",
+   "sample": 0,
+   "cer": 0.0,
+   "asr": "Chào bạn, mình là BKAI, trợ lý tư vấn tuyển sinh của trường Đại học Bách Khoa."
+  },
+  {
+   "engine": "gemini_Kore",
+   "sample": 1,
+   "cer": 0.2404,
+   "asr": "Năm 2026, ngành khoa học máy tính chương trình tiêu chuẩn có điểm chuẩn là 85,45 điểm."
+  },
+  {
+   "engine": "kokoro_mai_linh",
+   "sample": 0,
+   "cer": 0.0133,
+   "asr": "Chào bạn, mình là BKI, trợ lý tư vấn tuyển sinh của Trường Đại học Bách Khoa."
+  },
+  {
+   "engine": "kokoro_mai_linh",
+   "sample": 1,
+   "cer": 0.3173,
+   "asr": "5. Ngành khoa học máy tính chương trình tiêu chuẩn có điểm chuẩn là 85,45 điểm."
+  },
+  {
+   "engine": "kokoro_mai_linh",
+   "sample": 2,
+   "cer": 0.1589,
+   "asr": "Bạn nên chuẩn bị chứng chỉ ELSE từ 6,0 trở lên nếu muốn học chương trình dạy bằng tiếng Anh nhé!"
+  }
+ ]
+}

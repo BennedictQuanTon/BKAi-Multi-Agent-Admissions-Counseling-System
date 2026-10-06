@@ -1,0 +1,41 @@
+[
+ {
+  "engine": "edge-tts vi-VN-HoaiMyNeural",
+  "ttfb_ms_p50": 3821,
+  "total_ms_p50": 4509,
+  "streaming": true,
+  "local": false
+ },
+ {
+  "engine": "edge-tts vi-VN-NamMinhNeural",
+  "ttfb_ms_p50": 3846,
+  "total_ms_p50": 4770,
+  "streaming": true,
+  "local": false
+ },
+ {
+  "engine": "kokoro-vietnamese mai_linh (cpu)",
+  "ttfb_ms_p50": 591,
+  "total_ms_p50": 591,
+  "rtf_p50": 0.114,
+  "load_s": 13.0,
+  "streaming": "per-sentence",
+  "local": true
+ },
+ {
+  "engine": "kokoro-vietnamese mai_linh (mps)",
+  "ttfb_ms_p50": 1199,
+  "total_ms_p50": 1199,
+  "rtf_p50": 0.232,
+  "load_s": 1.6,
+  "streaming": "per-sentence",
+  "local": true
+ },
+ {
+  "engine": "gemini-3.8-flash-lite-tts Kore",
+  "ttfb_ms_p50": 1001,
+  "total_ms_p50": 2271,
+  "streaming": true,
+  "local": false
+ }
+]

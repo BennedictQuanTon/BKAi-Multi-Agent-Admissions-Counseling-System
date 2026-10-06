@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<style>.panel .col{gap:12px}</style>
+</head><body>
+<div id="canvas" style="width:1720px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">BKAi v5 — System Architecture</h1>
+  <p class="sub">Multi-agent Agentic RAG for HCMUT admissions: typed facts for numbers, hybrid RAG for policy, deterministic verification, real-time voice.</p>
+
+  <div class="row" style="gap:72px; align-items:flex-start">
+    <!-- Clients -->
+    <div class="panel c-blue" id="clients" style="width:300px">
+      <div class="ph"><i data-lucide="users"></i>Clients</div>
+      <div class="col">
+        <div class="box c-blue" id="spa"><div class="ic"><i data-lucide="monitor-smartphone"></i></div><div><div class="t">React 19 SPA</div><div class="d">Chat · Voice · Counselor · Dashboard<br>Vite · Tailwind v4 · framer-motion</div></div></div>
+        <div class="box c-blue" id="mic"><div class="ic"><i data-lucide="audio-lines"></i></div><div><div class="t">Mic → AudioWorklet</div><div class="d">PCM16 16 kHz frames · Web Audio playback</div></div></div>
+        <div class="box c-blue dashed" id="mcpc"><div class="ic"><i data-lucide="plug"></i></div><div><div class="t">MCP clients</div><div class="d">Claude Desktop · Cursor · Open WebUI (mcpo)</div></div></div>
+      </div>
+    </div>
+
+    <!-- API edge + agents -->
+    <div class="col" style="flex:1; gap:60px">
+      <div class="panel c-teal" id="edge">
+        <div class="ph"><i data-lucide="shield-check"></i>API Edge — FastAPI :8000</div>
+        <div class="row" style="gap:14px">
+          <div class="box c-teal" id="rest" style="flex:1"><div class="ic"><i data-lucide="globe"></i></div><div><div class="t">REST</div><div class="d">/api/chat · /tools/calc<br>/admin/review · /eval</div></div></div>
+          <div class="box c-teal" id="ws" style="flex:1"><div class="ic"><i data-lucide="radio"></i></div><div><div class="t">WebSocket</div><div class="d">/ws/chat · /ws/voice<br>/ws/dashboard (live console)</div></div></div>
+          <div class="box c-teal" id="guard" style="flex:1"><div class="ic"><i data-lucide="shield-alert"></i></div><div><div class="t">Guardrails</div><div class="d">rules · injection · scope<br>Redis rate-limit / IP</div></div></div>
+          <div class="box c-red" id="cache" style="flex:1"><div class="ic"><i data-lucide="zap"></i></div><div><div class="t">Answer cache</div><div class="d">entity-guarded · approved<br>only · ~30 ms hit</div></div></div>
+        </div>
+      </div>
+
+      <div class="panel c-orange" id="graph">
+        <div class="ph"><i data-lucide="bot"></i>Multi-Agent Graph — LangGraph</div>
+        <div class="row" style="gap:12px; align-items:stretch">
+          <div class="box vert c-orange" id="sup" style="width:190px"><div class="ic"><i data-lucide="sparkles"></i></div><div class="t">Supervisor</div><div class="d" style="text-align:center">adaptive routing<br>fast path = 0 LLM<br>plan = 1 LLM call</div></div>
+          <div class="col" style="gap:10px; flex:1">
+            <div class="box c-orange" id="data"><div class="ic"><i data-lucide="database"></i></div><div><div class="t">Data agent</div><div class="d">SQL tools on facts.sqlite</div></div></div>
+            <div class="box c-orange" id="policy"><div class="ic"><i data-lucide="book-open-text"></i></div><div><div class="t">Policy agent</div><div class="d">hybrid RAG + corrective hop</div></div></div>
+            <div class="box c-orange" id="counsel"><div class="ic"><i data-lucide="calculator"></i></div><div><div class="t">Counsel agent</div><div class="d">score formula 2026 · bands</div></div></div>
+          </div>
+          <div class="box vert c-orange" id="syn" style="width:170px"><div class="ic"><i data-lucide="feather"></i></div><div class="t">Synthesizer</div><div class="d" style="text-align:center">streams tokens<br>citations [n]</div></div>
+          <div class="box vert c-orange" id="ver" style="width:170px"><div class="ic"><i data-lucide="badge-check"></i></div><div class="t">Verifier</div><div class="d" style="text-align:center">every number ∈ evidence<br>else 1 repair</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div class="panel c-purple" id="voice" style="width:300px">
+      <div class="ph"><i data-lucide="mic"></i>Voice Path</div>
+      <div class="col">
+        <div class="box c-purple" id="aai"><div class="ic"><i data-lucide="audio-waveform"></i></div><div><div class="t">AssemblyAI U-3.6 Pro</div><div class="d">streaming vi · keyterms · turn detection<br>fallback: Whisper large-v3-turbo</div></div></div>
+        <div class="box c-purple" id="kokoro"><div class="ic"><i data-lucide="volume-2"></i></div><div><div class="t">Kokoro-Vietnamese</div><div class="d">local TTS · per-clause streaming<br>~0.6 s / sentence · RTF 0.11</div></div></div>
+        <div class="box c-purple dashed" id="lk"><div class="ic"><i data-lucide="phone-call"></i></div><div><div class="t">LiveKit worker</div><div class="d">optional WebRTC / telephony</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:72px; margin-top:72px; align-items:stretch">
+    <div class="panel c-green" id="know" style="flex:1.35">
+      <div class="ph"><i data-lucide="library"></i>Knowledge & Memory</div>
+      <div class="row" style="gap:12px">
+        <div class="box c-green" id="facts" style="flex:1"><div class="ic"><i data-lucide="table-2"></i></div><div><div class="t">facts.sqlite</div><div class="d">11 typed tables · 74 majors<br>302 cut-offs (2023–2026)</div></div></div>
+        <div class="box c-green" id="qdrant" style="flex:1"><div class="ic"><i data-lucide="boxes"></i></div><div><div class="t">Qdrant</div><div class="d">340 chunks · dense 1024-d<br>+ BM25 sparse (IDF)</div></div></div>
+        <div class="box c-red" id="redis" style="flex:1"><div class="ic"><i data-lucide="layers"></i></div><div><div class="t">Redis</div><div class="d">sessions + profile · TTL<br>telemetry · rate limit</div></div></div>
+      </div>
+    </div>
+    <div class="panel c-slate" id="datahub" style="flex:1">
+      <div class="ph"><i data-lucide="workflow"></i>Datahub (offline)</div>
+      <div class="row" style="gap:12px">
+        <div class="box c-slate" id="crawl" style="flex:1"><div class="ic"><i data-lucide="globe-lock"></i></div><div><div class="t">Crawl</div><div class="d">16 official pages<br>Playwright</div></div></div>
+        <div class="box c-slate" id="build" style="flex:1"><div class="ic"><i data-lucide="check-check"></i></div><div><div class="t">Parse · validate</div><div class="d">5,685 quota ✓<br>67/67 cross-check</div></div></div>
+      </div>
+    </div>
+    <div class="panel c-blue" id="model" style="flex:1">
+      <div class="ph"><i data-lucide="cpu"></i>Model Plane</div>
+      <div class="col" style="gap:10px">
+        <div class="box c-blue" id="gem"><div class="ic"><i data-lucide="sparkle"></i></div><div><div class="t">Gemini 3.5 Flash-Lite</div><div class="d">quota-aware pool → 3.1 Flash-Lite failover</div></div></div>
+        <div class="box c-blue" id="emb"><div class="ic"><i data-lucide="brain-circuit"></i></div><div><div class="t">VN-Embedding v2 · bge-reranker</div><div class="d">local MPS / CUDA / CPU</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="leg"></div>
+</div>
+<script>
+ready(() => {
+  document.getElementById("leg").outerHTML = legend([["blue","HTTP / WebSocket"],["teal","Request path"],["orange","Agent flow"],["green","Data / tools"],["purple","Voice"],["slate","Offline build",true]]);
+  hwire("clients","edge",0.45,{color:"blue",label:"REST · WS",ly:-14});
+  vwire("edge","graph",0.62,{color:"teal",label:"guard ✓ · cache miss"});
+  wire("sup","data",{from:"r",to:"l",color:"orange"});
+  wire("sup","policy",{from:"r",to:"l",color:"orange"});
+  wire("sup","counsel",{from:"r",to:"l",color:"orange"});
+  wire("data","syn",{from:"r",to:"l",color:"orange",tt:0.3});
+  wire("policy","syn",{from:"r",to:"l",color:"orange"});
+  wire("counsel","syn",{from:"r",to:"l",color:"orange",tt:0.7});
+  wire("syn","ver",{from:"r",to:"l",color:"orange"});
+  vwire("graph","know",0.35,{color:"green",label:"SQL tools · hybrid search"});
+  vwire("graph","model",0.5,{color:"blue",dash:true,label:"LLM calls"});
+  hwire("edge","voice",0.55,{color:"purple",label:"/ws/voice",ly:-14});
+  hwire("graph","voice",0.4,{color:"purple",label:"spoken answer",ly:-14});
+  hwire("datahub","know",0.5,{color:"slate",dash:true,left:true,label:"build",ly:-14});
+  vwire("clients","know",0.5,{color:"green",dash:true,label:"MCP server"});
+});
+</script>
+</body></html>

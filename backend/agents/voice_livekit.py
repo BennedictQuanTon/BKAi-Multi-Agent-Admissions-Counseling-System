@@ -1,262 +1,117 @@
 """
-BkAI LiveKit Voice Worker (backend/agents/voice_livekit.py)
+BKAi realtime voice worker (LiveKit Agents ≥ 1.8) — optional WebRTC path for telephony / mobile.
 
-Stack:
-- LiveKit WebRTC + Silero VAD
-- Deepgram Nova STT (Vietnamese) when DEEPGRAM_API_KEY is set
-- Fallback: local faster-whisper STT
-- Brain: FastAPI counselor + Agentic RAG (channel=voice)
-- TTS: edge-tts Vietnamese (NOT Deepgram Aura — no VI support)
+  STT  AssemblyAI Universal-3.6 Pro streaming (vi, keyterms from the majors table, semantic turn detection)
+       → Deepgram nova-3 if only DEEPGRAM_API_KEY is set.
+  LLM  the BKAi multi-agent graph, streamed token-by-token from the backend WebSocket (channel=voice).
+  TTS  Kokoro-Vietnamese (local) with edge-tts / Gemini fallback — same engine as the in-app /ws/voice path.
 
-Run (from backend/):
-  source .venv/bin/activate
-  pip install -r requirements.txt
-  python -m agents.voice_livekit download-files
-  python -m agents.voice_livekit dev
+Run (from backend/):  python -m agents.voice_livekit download-files && python -m agents.voice_livekit dev
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-import sys
-import tempfile
-from pathlib import Path
+import uuid
 
-import httpx
 from dotenv import load_dotenv
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BACKEND_DIR / ".env")
-
-BACKEND_URL = os.getenv("BKAI_BACKEND_URL", "http://127.0.0.1:8000")
-DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "")
-DEEPGRAM_STT_MODEL = os.getenv("DEEPGRAM_STT_MODEL", "nova-3")
-DEEPGRAM_LANGUAGE = os.getenv("DEEPGRAM_LANGUAGE", "vi")
-
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 logger = logging.getLogger("bkai-voice")
+BACKEND_WS = os.getenv("BKAI_BACKEND_URL", "http://127.0.0.1:8000").replace("http", "ws", 1) + "/ws/chat"
 
 
-async def ask_counselor(text: str, session_id: str) -> str:
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        res = await client.post(
-            f"{BACKEND_URL}/api/chat",
-            json={"query": text[:500], "session_id": session_id, "channel": "voice"},
-        )
-        res.raise_for_status()
-        return res.json().get("answer", "")
+def build_stt():
+    from config.settings import get_settings
+
+    s = get_settings()
+    if s.assemblyai.enabled:
+        from livekit.plugins import assemblyai
+
+        from services.audio_service import keyterms
+
+        logger.info("stt=assemblyai model=%s", s.assemblyai.speech_model)
+        return assemblyai.STT(api_key=s.assemblyai.api_key, model=s.assemblyai.speech_model,
+                              language_codes=["vi", "en"], keyterms_prompt=keyterms(),
+                              min_turn_silence=400, max_turn_silence=1500), "stt"
+    from livekit.plugins import deepgram
+
+    logger.info("stt=deepgram (set ASSEMBLYAI_API_KEY to use AssemblyAI)")
+    return deepgram.STT(model=os.getenv("DEEPGRAM_STT_MODEL", "nova-3"), language="vi"), "vad"
 
 
 def main() -> None:
-    from livekit.agents import (
-        Agent,
-        AgentSession,
-        AutoSubscribe,
-        JobContext,
-        WorkerOptions,
-        cli,
-        llm,
-        stt,
-        tts,
-        APIConnectOptions,
-    )
+    from livekit.agents import (Agent, AgentSession, APIConnectOptions, AutoSubscribe, JobContext, WorkerOptions, cli,
+                                llm, tts)
     from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
     from livekit.plugins import silero
 
-    def build_stt():
-        if DEEPGRAM_API_KEY:
-            from livekit.plugins import deepgram
-
-            logger.info(
-                "stt_provider=deepgram model=%s language=%s",
-                DEEPGRAM_STT_MODEL,
-                DEEPGRAM_LANGUAGE,
-            )
-            return deepgram.STT(
-                model=DEEPGRAM_STT_MODEL,
-                language=DEEPGRAM_LANGUAGE,
-                api_key=DEEPGRAM_API_KEY,
-            )
-
-        logger.warning("DEEPGRAM_API_KEY missing — falling back to local Whisper STT")
-
-        class WhisperSTT(stt.STT):
-            def __init__(self) -> None:
-                super().__init__(
-                    capabilities=stt.STTCapabilities(streaming=False, interim_results=False)
-                )
-
-            async def _recognize_impl(
-                self,
-                buffer,
-                *,
-                language=None,
-                conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS,
-            ) -> stt.SpeechEvent:
-                from livekit.agents.utils import audio as audio_utils
-                from services.audio_service import speech_to_text
-                import wave
-                import numpy as np
-
-                frames = audio_utils.merge_frames(buffer)
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                    path = tmp.name
-                try:
-                    audio_data = np.frombuffer(frames.data, dtype=np.int16)
-                    with wave.open(path, "wb") as wf:
-                        wf.setnchannels(frames.num_channels or 1)
-                        wf.setsampwidth(2)
-                        wf.setframerate(frames.sample_rate or 16000)
-                        wf.writeframes(audio_data.tobytes())
-                    result = await speech_to_text(path)
-                    text = result.get("text", "")
-                finally:
-                    try:
-                        os.unlink(path)
-                    except OSError:
-                        pass
-
-                return stt.SpeechEvent(
-                    type=stt.SpeechEventType.FINAL_TRANSCRIPT,
-                    alternatives=[stt.SpeechData(text=text or "", language=language or "vi")],
-                )
-
-        return WhisperSTT()
-
-    class EdgeTTS(tts.TTS):
-        def __init__(self) -> None:
-            super().__init__(
-                capabilities=tts.TTSCapabilities(streaming=False),
-                sample_rate=24000,
-                num_channels=1,
-            )
-
-        def synthesize(
-            self,
-            text: str,
-            *,
-            conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS,
-        ):
-            return _EdgeTTSStream(text=text, tts=self, conn_options=conn_options)
-
-    class _EdgeTTSStream(tts.ChunkedStream):
-        async def _run(self, output_emitter) -> None:
-            from services.audio_service import text_to_speech
-            from livekit import rtc
-
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
-                path = tmp.name
-            try:
-                await text_to_speech(self._input_text, path)
-                try:
-                    import av
-
-                    container = av.open(path)
-                    stream = container.streams.audio[0]
-                    resampler = av.audio.resampler.AudioResampler(
-                        format="s16", layout="mono", rate=24000
-                    )
-                    for frame in container.decode(stream):
-                        resampled = resampler.resample(frame)
-                        frames = resampled if isinstance(resampled, list) else [resampled]
-                        for pcm in frames:
-                            if pcm is None:
-                                continue
-                            data = pcm.to_ndarray().tobytes()
-                            output_emitter.push(
-                                rtc.AudioFrame(
-                                    data=data,
-                                    sample_rate=24000,
-                                    num_channels=1,
-                                    samples_per_channel=max(len(data) // 2, 1),
-                                )
-                            )
-                    output_emitter.flush()
-                except Exception as e:
-                    logger.error("edge_tts_decode_failed error=%s", e)
-            finally:
-                try:
-                    os.unlink(path)
-                except OSError:
-                    pass
-
     class BackendLLM(llm.LLM):
+        """Adapter: LiveKit LLM interface → BKAi multi-agent graph over WebSocket (streaming)."""
+
         def __init__(self, session_id: str) -> None:
             super().__init__()
-            self._session_id = session_id
+            self.session_id = session_id
 
-        def chat(self, *, chat_ctx: llm.ChatContext, tools=None, conn_options=None, **kwargs):
-            return _BackendLLMStream(
-                self,
-                chat_ctx=chat_ctx,
-                tools=tools or [],
-                session_id=self._session_id,
-            )
+        def chat(self, *, chat_ctx: llm.ChatContext, tools=None, conn_options=DEFAULT_API_CONNECT_OPTIONS, **_):
+            return _BackendStream(self, chat_ctx=chat_ctx, tools=tools or [], conn_options=conn_options)
 
-    class _BackendLLMStream(llm.LLMStream):
-        def __init__(self, llm_obj, *, chat_ctx, tools, session_id: str):
-            super().__init__(llm_obj, chat_ctx=chat_ctx, tools=tools)
-            self._session_id = session_id
-
+    class _BackendStream(llm.LLMStream):
         async def _run(self) -> None:
+            import websockets
+
             text = ""
-            for item in reversed(self.chat_ctx.items):
+            for item in reversed(self._chat_ctx.items):
                 if getattr(item, "role", None) == "user":
-                    content = getattr(item, "content", "")
-                    if isinstance(content, list):
-                        text = " ".join(str(c) for c in content if isinstance(c, str))
-                    else:
-                        text = str(content or "")
+                    text = item.text_content or ""
                     break
-            try:
-                answer = await ask_counselor(text or "Xin chào", self._session_id)
-            except Exception:
-                logger.exception("counselor_call_failed")
-                answer = "Xin lỗi, mình gặp sự cố. Bạn thử lại giúp mình nhé."
+            rid = uuid.uuid4().hex[:8]
+            async with websockets.connect(BACKEND_WS, max_size=None) as ws:
+                await ws.send(json.dumps({"query": text[:500] or "Xin chào", "session_id": self._llm.session_id,
+                                          "channel": "voice"}))
+                async for raw in ws:
+                    ev = json.loads(raw)
+                    if ev["type"] == "token":
+                        self._event_ch.send_nowait(llm.ChatChunk(id=rid, delta=llm.ChoiceDelta(role="assistant",
+                                                                                              content=ev["content"])))
+                    elif ev["type"] in ("done", "error"):
+                        break
 
-            from livekit.agents.llm import ChatChunk, ChoiceDelta
+    class KokoroTTS(tts.TTS):
+        """Non-streaming per call; LiveKit's StreamAdapter feeds it one sentence at a time."""
 
-            self._event_ch.send_nowait(
-                ChatChunk(id="bkai", delta=ChoiceDelta(role="assistant", content=answer))
-            )
-
-    class CounselorAgent(Agent):
         def __init__(self) -> None:
-            super().__init__(
-                instructions=(
-                    "Bạn là BkAI — cố vấn tuyển sinh HCMUT. "
-                    "Nói tiếng Việt ngắn gọn, xưng mình/bạn."
-                )
-            )
+            super().__init__(capabilities=tts.TTSCapabilities(streaming=False), sample_rate=24000, num_channels=1)
+
+        def synthesize(self, text: str, *, conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS):
+            return _KokoroStream(tts=self, input_text=text, conn_options=conn_options)
+
+    class _KokoroStream(tts.ChunkedStream):
+        async def _run(self, output_emitter: tts.AudioEmitter) -> None:
+            from services.audio_service import synth_chunk
+            from services.tts_text import normalize_for_speech
+
+            output_emitter.initialize(request_id=uuid.uuid4().hex, sample_rate=24000, num_channels=1,
+                                      mime_type="audio/pcm")
+            pcm = await synth_chunk(normalize_for_speech(self._input_text))
+            if pcm:
+                output_emitter.push(pcm)
+            output_emitter.flush()
 
     async def entrypoint(ctx: JobContext) -> None:
         await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-        session_id = (ctx.room.name or "voice_default").replace("bkai-", "", 1)
-
-        session = AgentSession(
-            vad=silero.VAD.load(),
-            stt=build_stt(),
-            llm=BackendLLM(session_id=session_id),
-            tts=EdgeTTS(),
-        )
-        await session.start(agent=CounselorAgent(), room=ctx.room)
-        await session.generate_reply(
-            instructions=(
-                "Chào bạn một câu ngắn bằng tiếng Việt và hỏi bạn cần tư vấn tuyển sinh gì."
-            )
-        )
+        stt, turn_detection = build_stt()
+        session = AgentSession(vad=silero.VAD.load(), stt=stt, turn_detection=turn_detection,
+                               llm=BackendLLM(session_id=f"lk-{ctx.room.name}"), tts=KokoroTTS(),
+                               allow_interruptions=True)
+        await session.start(agent=Agent(instructions="BKAi — tư vấn tuyển sinh HCMUT."), room=ctx.room)
+        await session.say("Chào bạn, mình là BKAi. Bạn muốn hỏi gì về tuyển sinh Bách khoa?")
 
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    try:
-        main()
-    except ImportError as e:
-        print(
-            "Install deps: pip install -r backend/requirements.txt\n"
-            f"{e}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    main()

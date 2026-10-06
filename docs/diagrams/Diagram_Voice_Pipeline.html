@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="kit.js"></script>
+<style>.step{width:230px}</style>
+</head><body>
+<div id="canvas" style="width:1640px">
+  <svg id="wires"><defs></defs></svg>
+  <h1 class="title">Vietnamese Voice Pipeline</h1>
+  <p class="sub">Full-duplex over one WebSocket. Audio for the answer is synthesised clause-by-clause while Gemini is still writing,<br>and the user can interrupt at any time (barge-in).</p>
+
+  <div class="row" style="gap:58px; justify-content:center">
+    <div class="box vert c-blue step" id="mic"><div class="ic"><i data-lucide="mic"></i></div><div class="t">Browser mic</div><div class="d" style="text-align:center">AudioWorklet → 16 kHz<br>PCM16 · 50 ms frames<br>echo cancel · RMS level</div></div>
+    <div class="box vert c-purple step" id="stt"><div class="ic"><i data-lucide="audio-waveform"></i></div><div class="t">STT</div><div class="d" style="text-align:center"><b>AssemblyAI Universal-3.6 Pro</b><br>streaming · vi + en · keyterms<br>(100 major names, ĐGNL…)<br><b>CER 1.3% · final 579 ms</b><br>fallback: Whisper large-v3-turbo</div></div>
+    <div class="box vert c-purple step" id="turn"><div class="ic"><i data-lucide="hourglass"></i></div><div class="t">Turn detection</div><div class="d" style="text-align:center">semantic end-of-turn<br>min 400 ms · max 1.5 s silence<br>SpeechStarted → barge-in</div></div>
+    <div class="box vert c-orange step" id="graph"><div class="ic"><i data-lucide="bot"></i></div><div class="t">Agent graph</div><div class="d" style="text-align:center">channel = voice<br>≤3 sentences · no markdown<br>same verifier & citations</div></div>
+  </div>
+
+  <div class="row" style="gap:58px; justify-content:center; margin-top:62px">
+    <div class="box vert c-blue step" id="play"><div class="ic"><i data-lucide="speaker"></i></div><div class="t">Web Audio playback</div><div class="d" style="text-align:center">gapless scheduling<br>analyser → orb animation<br>stop() on interrupt</div></div>
+    <div class="box vert c-green step" id="tts"><div class="ic"><i data-lucide="volume-2"></i></div><div class="t">Kokoro-Vietnamese</div><div class="d" style="text-align:center">local · Apache-2.0 · 24 kHz<br>~0.6 s / sentence · RTF 0.11<br>next clause pre-synthesised<br>fallback: edge-tts → Gemini TTS</div></div>
+    <div class="box vert c-teal step" id="norm"><div class="ic"><i data-lucide="whole-word"></i></div><div class="t">Speech normaliser</div><div class="d" style="text-align:center">85,45 → “tám mươi lăm phẩy…”<br>2026 → “hai nghìn không trăm…”<br>ĐGNL / IELTS / UTS → readings</div></div>
+    <div class="box vert c-orange step" id="split"><div class="ic"><i data-lucide="scissors"></i></div><div class="t">Clause splitter</div><div class="d" style="text-align:center">flush on . ! ? ; :<br>or on “,” after 70 chars<br>while tokens stream</div></div>
+  </div>
+
+  <div class="row" style="gap:16px; margin-top:36px">
+    <div class="box c-green" style="flex:1"><div class="ic"><i data-lucide="timer"></i></div><div><div class="t">Measured end-to-end (AssemblyAI mode, 3 spoken questions)</div><div class="d">end of speech → final transcript <b>579 ms</b> → <b>first audio 2.55 s</b> (p50); 3/3 answers correct. Clause flushing cuts token→audio to ~0.9 s.</div></div></div>
+    <div class="box c-purple" style="flex:1"><div class="ic"><i data-lucide="scale"></i></div><div><div class="t">Why Kokoro (benchmark)</div><div class="d">TTFB p50: Kokoro CPU <b>591 ms</b> · Gemini 3.8 TTS 1,001 ms · edge-tts 3,821 ms. ASR round-trip CER: 0.12–0.16 for all three; Kokoro errors on raw digits/acronyms fixed by the normaliser.</div></div></div>
+    <div class="box c-slate dashed" style="flex:1"><div class="ic"><i data-lucide="phone-call"></i></div><div><div class="t">LiveKit worker (optional)</div><div class="d">Agents 1.8.4 · AssemblyAI plugin · same Kokoro TTS · LLM = BKAi graph streamed over /ws/chat — for WebRTC / SIP telephony.</div></div></div>
+  </div>
+  <div id="leg"></div>
+</div>
+<script>
+ready(() => {
+  document.getElementById("leg").outerHTML = legend([["blue","Browser audio"],["purple","Speech-to-text"],["orange","Reasoning"],["teal","Text → speech prep"],["green","Synthesis"],["red","Barge-in",true]]);
+  wire("mic","stt",{color:"blue",label:"PCM",ly:-14}); wire("stt","turn",{color:"purple"}); wire("turn","graph",{color:"purple",label:"final turn",ly:-14});
+  wire("graph","split",{from:"b",to:"t",color:"orange",label:"tokens"});
+  wire("split","norm",{from:"l",to:"r",color:"orange"}); wire("norm","tts",{from:"l",to:"r",color:"teal"}); wire("tts","play",{from:"l",to:"r",color:"green",label:"PCM 24k",ly:-14});
+  wire("turn","play",{from:"b",to:"t",color:"red",dash:true,tf:0.2,label:"interrupt",path:(x1,y1,x2,y2)=>`M${x1},${y1} V${y1+30} H${x2} V${y2}`});
+});
+</script>
+</body></html>

@@ -1,0 +1,38 @@
+# Production overlay:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# - only Caddy is public (80/443, automatic HTTPS); Redis / Qdrant / backend stay on the internal network
+# - APP_ENV=production → admin token mandatory, /docs disabled, HSTS, WS Origin allow-list enforced
+services:
+  redis:
+    ports: !reset []
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+  qdrant:
+    ports: !reset []
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+  backend:
+    ports: !reset []
+    environment:
+      APP_ENV: production
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      API_CORS_ORIGINS: https://${BKAI_DOMAIN:?set BKAI_DOMAIN}
+      TRUSTED_PROXIES: caddy
+      RATE_LIMIT_PER_MINUTE: "20"
+      RATE_LIMIT_PER_DAY: "300"
+    deploy:
+      resources: { limits: { memory: 6g } }
+  frontend:
+    ports: !reset []
+    build:
+      args: { VITE_API_URL: "https://${BKAI_DOMAIN}" }
+  caddy:
+    image: caddy:2-alpine
+    container_name: bkai-caddy
+    ports: ["80:80", "443:443"]
+    environment: { BKAI_DOMAIN: "${BKAI_DOMAIN}" }
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [backend, frontend]
+    restart: unless-stopped
+volumes:
+  caddy_data:
