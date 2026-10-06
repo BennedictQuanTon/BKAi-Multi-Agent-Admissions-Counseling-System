@@ -11,6 +11,7 @@ Run (from backend/):  python -m agents.voice_livekit download-files && python -m
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
@@ -42,11 +43,11 @@ def build_stt():
     return deepgram.STT(model=os.getenv("DEEPGRAM_STT_MODEL", "nova-3"), language="vi"), "vad"
 
 
-def main() -> None:
-    from livekit.agents import (Agent, AgentSession, APIConnectOptions, AutoSubscribe, JobContext, WorkerOptions, cli,
-                                llm, tts)
+@functools.lru_cache(maxsize=1)
+def _components():
+    """LiveKit adapter classes, built lazily inside the job process (LiveKit plugins import heavy deps)."""
+    from livekit.agents import APIConnectOptions, llm, tts
     from livekit.agents.types import DEFAULT_API_CONNECT_OPTIONS
-    from livekit.plugins import silero
 
     class BackendLLM(llm.LLM):
         """Adapter: LiveKit LLM interface → BKAi multi-agent graph over WebSocket (streaming)."""
@@ -100,16 +101,32 @@ def main() -> None:
                 output_emitter.push(pcm)
             output_emitter.flush()
 
-    async def entrypoint(ctx: JobContext) -> None:
-        await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-        stt, turn_detection = build_stt()
-        session = AgentSession(vad=silero.VAD.load(), stt=stt, turn_detection=turn_detection,
-                               llm=BackendLLM(session_id=f"lk-{ctx.room.name}"), tts=KokoroTTS(),
-                               allow_interruptions=True)
-        await session.start(agent=Agent(instructions="BKAi — tư vấn tuyển sinh HCMUT."), room=ctx.room)
-        await session.say("Chào bạn, mình là BKAi. Bạn muốn hỏi gì về tuyển sinh Bách khoa?")
+    return BackendLLM, KokoroTTS
 
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+
+async def entrypoint(ctx) -> None:
+    """Module-level so LiveKit can pickle it into spawned job processes (macOS uses spawn, not fork)."""
+    from livekit.agents import Agent, AgentSession, AutoSubscribe
+    from livekit.plugins import silero
+
+    BackendLLM, KokoroTTS = _components()
+    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+    stt, turn_detection = build_stt()
+    session = AgentSession(vad=silero.VAD.load(), stt=stt, turn_detection=turn_detection,
+                           llm=BackendLLM(session_id=f"lk-{ctx.room.name}"), tts=KokoroTTS(),
+                           allow_interruptions=True)
+    await session.start(agent=Agent(instructions="BKAi — tư vấn tuyển sinh HCMUT."), room=ctx.room)
+    await session.say("Chào bạn, mình là BKAi. Bạn muốn hỏi gì về tuyển sinh Bách khoa?")
+
+
+def main() -> None:
+    from livekit.agents import WorkerOptions, cli
+
+    # import by package path: when started with `python -m agents.voice_livekit` this file is __main__,
+    # which a spawned child cannot import by that name
+    from agents import voice_livekit
+
+    cli.run_app(WorkerOptions(entrypoint_fnc=voice_livekit.entrypoint))
 
 
 if __name__ == "__main__":

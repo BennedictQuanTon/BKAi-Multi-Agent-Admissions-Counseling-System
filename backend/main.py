@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
@@ -15,6 +15,10 @@ from config.settings import get_settings  # noqa: E402
 from utils.logger import get_logger, setup_logging  # noqa: E402
 
 logger = get_logger(__name__)
+
+# MCP over streamable HTTP at /mcp, in-process: same tools, same Qdrant client, no second process fighting for the
+# embedded index. Production keeps it private (Caddy answers /mcp with 404). MCP_HTTP=false turns it off.
+MCP_HTTP = os.getenv("MCP_HTTP", "true").lower() not in ("0", "false", "no")
 
 
 @asynccontextmanager
@@ -36,8 +40,13 @@ async def lifespan(app: FastAPI):
     await asyncio.to_thread(warmup_tts)  # Kokoro TTS (~10 s on CPU) — before "ready", not during the first request
     await asyncio.to_thread(_collection)
     get_graph()
-    logger.info("bkai_ready")
-    yield
+    async with AsyncExitStack() as stack:
+        if MCP_HTTP:
+            from mcp_server import server as mcp
+
+            await stack.enter_async_context(mcp.session_manager.run())
+        logger.info("bkai_ready", mcp="/mcp" if MCP_HTTP else "off")
+        yield
     from retrieval.store import get_client
 
     get_client().close()
@@ -61,6 +70,10 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(ws_router)
     app.include_router(voice_router)
+    if MCP_HTTP:
+        from mcp_server import server as mcp
+
+        app.router.routes.extend(mcp.streamable_http_app(streamable_http_path="/mcp", stateless_http=True).routes)
     return app
 
 

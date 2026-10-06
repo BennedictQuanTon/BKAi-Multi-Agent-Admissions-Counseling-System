@@ -72,7 +72,8 @@ def health() -> dict:
         "tts_kokoro": {"status": "healthy" if loaded(audio_service._kokoro) else "cold", "provider": s.voice.tts_provider},
         "stt_assemblyai": {"status": "configured" if s.assemblyai.enabled else "not_configured",
                            "model": s.assemblyai.speech_model, **audio_service.stt_stats()},
-        "stt_whisper": {"status": "healthy" if loaded(audio_service._whisper) else "cold (lazy)"},
+        # Whisper is only the fallback when AssemblyAI is not configured; with a key it is never loaded
+        "stt_whisper": {"status": "healthy" if loaded(audio_service._whisper) else ("off (AssemblyAI active)" if s.assemblyai.enabled else "cold (lazy)")},
         "livekit": {"status": "configured" if s.livekit.enabled else "not_configured"},
     }
     return components

@@ -1,6 +1,6 @@
 """Capture the real BKAi app for the landing page and the trailer (MacBook screen = 1512 × 982 css px, @2x).
 
-    scripts/start.sh                                   # app on :5173, API on :8000
+    ./start.sh                                         # app on :5173, API on :8000
     cd backend && .venv/bin/python ../frontend/scripts/capture_ui.py
 
 Writes frontend/public/media/ui/*.jpg (landing page showcase + film). Asks two real questions, so it uses ~4 Gemini calls.

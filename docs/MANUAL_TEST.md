@@ -12,7 +12,7 @@ cd backend && source .venv/bin/activate
 python -m datahub all && python ingest.py # only the first time / after data changes
 uvicorn main:app --port 8000
 cd ../frontend && npm run dev             # landing http://localhost:5173 · app http://localhost:5173/chat
-# or simply: scripts/start.sh --open  (stop with scripts/stop.sh)
+# or simply: ./start.sh   (everything: API, app, voice, MCP; stop with ./stop.sh)
 ```
 
 - [ ] `curl localhost:8000/api/health` → `"status":"ok"`, `"qdrant":true`, `"redis":true`

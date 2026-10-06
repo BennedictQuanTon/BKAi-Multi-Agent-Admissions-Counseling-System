@@ -128,10 +128,11 @@ bkai2/
 │   ├── evaluation/     benchmarks + datasets + reports/*.json
 │   ├── tests/          35 unit tests (no network)
 │   ├── ingest.py       chunk → embed → index into Qdrant
-│   └── mcp_server.py   MCP server (stdio or streamable HTTP)
+│   └── mcp_server.py   MCP server (stdio; also mounted in the API at /mcp)
 ├── frontend/           React 19 + TypeScript + Vite + Tailwind v4 + framer-motion
 │                       src/landing = landing page at "/", src/pages = the app (/chat …), video/ = the 60-s film pipeline
-├── scripts/            start.sh / stop.sh (local, no Docker), smoke_prod.py (post-deploy checks)
+├── start.sh · stop.sh  start / stop everything locally (no Docker)
+├── scripts/            smoke_prod.py (post-deploy checks), start-infra.sh (Redis + Qdrant in Docker)
 ├── brand/              logo files and brand guide (BRAND.md)
 ├── deploy/Caddyfile    TLS reverse proxy for production
 ├── docs/               diagrams (HTML sources + render script), DEPLOYMENT.md, MANUAL_TEST.md, PLAN_v5.md
@@ -316,8 +317,8 @@ The specialists run **in parallel**. Typical answers use **0–2 Gemini calls** 
 The same tools the agents use are published over the Model Context Protocol, so Claude Desktop, IDE agents or other systems can query the official data.
 
 ```bash
-python mcp_server.py                     # stdio
-python mcp_server.py --http --port 8765  # streamable HTTP (keep it private: blocked at the proxy in production)
+python mcp_server.py                     # stdio (Claude Desktop, Cursor, Claude Code)
+# streamable HTTP is built into the API: http://127.0.0.1:8000/mcp  (blocked at the proxy in production; MCP_HTTP=false turns it off)
 ```
 
 Tools: `find_majors`, `list_majors`, `get_admission_scores`, `get_quotas`, `get_major_profiles`, `get_tuition`,
@@ -450,12 +451,16 @@ python mcp_server.py                              # MCP tools over stdio
 python -m agents.voice_livekit dev                # LiveKit realtime worker
 ```
 
-One command for everything (Redis → backend → frontend, in the background, logs in `.run/logs/`):
+**One command for everything.** It runs Redis, then the backend (chat API, voice over AssemblyAI + Kokoro, MCP at `/mcp`), then the frontend (landing + app), then the LiveKit worker if `LIVEKIT_*` is set. Everything runs in the background, and logs go to `.run/logs/`:
 
 ```bash
-scripts/start.sh --open            # landing at :5173, app at :5173/chat; add --mcp, --voice; --rebuild re-crawls the data
-scripts/stop.sh                    # --redis also stops Redis
+./start.sh              # starts everything and opens http://localhost:5173 (app at /chat)
+./start.sh --rebuild    # re-crawl hcmut.edu.vn and rebuild the knowledge base first
+./stop.sh               # stop everything (--redis also stops Redis)
 ```
+
+With an AssemblyAI key, the Whisper fallback is never loaded. MCP clients connect to `http://127.0.0.1:8000/mcp` (streamable HTTP),
+or run `backend/mcp_server.py` over stdio.
 
 With Docker: `docker compose up -d --build` (add `--profile mcp` or `--profile voice` for the extra services).
 For a 25-minute walkthrough of every feature, see [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md).

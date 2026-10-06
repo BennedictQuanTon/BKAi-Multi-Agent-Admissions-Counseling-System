@@ -16,7 +16,7 @@ metric cites the report that produced it in `backend/evaluation/reports/`.
 | Evidence | `Metrics.tsx` | KPI strip, five tables, references |
 | Early feedback | `Closing.tsx` | **sample quotes, labelled as placeholders**: replace them with real pilot quotes (with permission) |
 
-Screens come from the running app: `cd backend && .venv/bin/python ../frontend/scripts/capture_ui.py`, with `scripts/start.sh` running.
+Screens come from the running app: `cd backend && .venv/bin/python ../frontend/scripts/capture_ui.py`, with `./start.sh` running.
 
 ## The film
 
